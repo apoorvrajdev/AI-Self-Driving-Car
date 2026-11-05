@@ -12,6 +12,7 @@ skills/
 .skills/
 ai-notes/
 reference/
+.ignore
 Claude outputs/
 # Other AI assistants' config, in case they are ever used
 .agents/
