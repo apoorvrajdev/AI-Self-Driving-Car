@@ -22,7 +22,7 @@ Only the owner moves a task to `done`.
 | ID | Title | Phase | Status | Depends on |
 | --- | --- | --- | --- | --- |
 | T-000 | Reference corpus | 0 | done | — |
-| T-001 | Import baseline, licence and notice | 0 | todo | T-000 |
+| T-001 | Import baseline, licence and notice | 0 | review | T-000 |
 | T-002 | Tooling: package.json, dev server, tests, lint | 0 | todo | T-001 |
 | T-003 | Characterization tests: utils and network | 0 | todo | T-002 |
 | T-004 | Tests for the commit guards | 0 | todo | T-002 |
@@ -46,7 +46,7 @@ Only the owner moves a task to `done`.
 
 ### T-001 — Import baseline, licence and notice
 
-- **Status:** todo
+- **Status:** review (2026-11-05) — criteria 1 and 2 verified; criterion 3 is OWNER-CHECK
 - **Goal:** `src/` contains the 11 files of `9. Fine-tuning`, byte-identical, with correct credit.
 - **Context:** `reference/self-driving-car/9. Fine-tuning/`, `reference/self-driving-car/LICENSE`,
   `reference/self-driving-car/README.md`, DECISIONS ADR-0001 and ADR-0006.
@@ -166,3 +166,22 @@ Only the owner moves a task to `done`.
 | Date | Task | Event | Evidence |
 | --- | --- | --- | --- |
 | 2026-11-05 | T-000 | Reference corpus cloned | Commit hashes in the T-000 card |
+| 2026-11-05 | T-001 | Baseline imported to `src/`; `LICENSE` and `NOTICE.md` added; verifier PASS, reviewer APPROVE; waiting for owner check (browser run) and commit | SHA-256 table below: 11 of 11 equal to `reference/self-driving-car/9. Fine-tuning/`, sizes equal |
+
+### Baseline hash table (T-001, upstream commit `8b87236`)
+
+Text files use CRLF line endings, as upstream (`.gitattributes` marks `src/**` as `-text`). `LICENSE` and `NOTICE.md` use LF.
+
+| File | Bytes | SHA-256 |
+| --- | --- | --- |
+| car.js | 4794 | 336cf43585bfc53ce9281404d32b85dc36e4a424dd6fbea674eb44f54c690858 |
+| car.png | 6964 | 3e3d3a268ca6133277f89346a7b74b5c28658e9956e91514103a7508a855dc8f |
+| controls.js | 1427 | b70138dd2a6026655fd4283b7aafa3996d0cdc76c5f4365c89efe757ec2d7d7b |
+| index.html | 739 | bcdcdb2bdcfb487176bc66e274d7abe0c889251a468e4330608c80e28b4d134f |
+| main.js | 2463 | 606b6354d9ffe797625bfd3f53be80593f1c50dddd558a00531c3d30a29b14b2 |
+| network.js | 2505 | 8a6df13b9bbd97932d48fa084d932eac621ce2e99e44f6f12ab5bd0ab93b364b |
+| road.js | 1520 | 9bf0dbbc6244ec882c0a73b615be767d15bdfdc83ae4b060fa1d42225624423a |
+| sensor.js | 3138 | 97dbaa7fd1e3cbe1ac62f5b7db088d9b33cd2530583380f7e4629ff66726a2fb |
+| style.css | 471 | 4fc64d4f132574ff36eb51f2528bdcd6c5c4646cf34d596c5bb256ac99fd4e53 |
+| utils.js | 1308 | 4f5b5d5836b82f7189d7744554f4a9de76112518bf7dd720a7a6527a04a84678 |
+| visualizer.js | 7098 | 4f228a30318f5932db236fca82d452d6a554aa138125c088a77e44b95ac8f883 |
