@@ -1,0 +1,7 @@
+* text=auto
+# Hook scripts must keep LF endings so Git's sh can run them on Windows
+.githooks/* text eol=lf
+*.sh text eol=lf
+*.png binary
+# Imported baseline: store exactly as imported, never normalise line endings
+src/** -text

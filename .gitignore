@@ -1,0 +1,59 @@
+# ============================================================
+# AI assistant files — NEVER committed (owner policy)
+# The pre-commit hook in .githooks/ also blocks these if force-added.
+# ============================================================
+.claude/
+CLAUDE.md
+CLAUDE.local.md
+**/CLAUDE.md
+**/CLAUDE.local.md
+**/SKILL.md
+skills/
+.skills/
+ai-notes/
+reference/
+Claude outputs/
+# Other AI assistants' config, in case they are ever used
+.agents/
+AGENTS.md
+.cursor/
+.cursorrules
+.github/copilot-instructions.md
+
+# ============================================================
+# Dependencies and build output
+# ============================================================
+node_modules/
+dist/
+coverage/
+.vite/
+*.log
+npm-debug.log*
+
+# ============================================================
+# Environment and secrets
+# ============================================================
+.env
+.env.*
+!.env.example
+
+# ============================================================
+# Editors and OS
+# ============================================================
+.vscode/*
+!.vscode/extensions.json
+.idea/
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# ============================================================
+# Python (offline training, later phases)
+# ============================================================
+.venv/
+training/.venv/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+training/data/
+training/runs/
