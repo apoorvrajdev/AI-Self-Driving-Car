@@ -1,7 +1,8 @@
 # Decisions
 
 Architecture Decision Records (ADRs). Each records one decision: its context, the options, the choice and its
-consequences. Statuses: **Proposed** (awaiting the owner), **Accepted**, **Superseded by ADR-NNNN**, **Rejected**.
+consequences. Statuses: **Proposed** (awaiting the owner), **Accepted**, **Accepted · amended by ADR-NNNN**
+(still in force, partly changed by a later ADR), **Superseded by ADR-NNNN**, **Rejected**.
 Accepted decisions change only through a new ADR.
 
 | ADR | Decision | Status | Date |
