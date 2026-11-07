@@ -3,9 +3,11 @@
 The task board for the project. One task is `in-progress` at a time. Each task is small enough to review as
 one change and has acceptance criteria that can be checked with evidence.
 
-**Statuses:** `todo` → `in-progress` (branch open) → `review` (pull request open, waiting for checks or an
-owner check) → `done` (pull request merged). `blocked` = stopped, reason in the Log.
-A task becomes `done` in the pull request that delivers it.
+**Statuses:** `todo` → `in-progress` (branch open) → `done`. `review` is used
+only while a pull request waits for an owner check; a normal task goes straight from `in-progress` to `done`.
+`blocked` = stopped, reason in the Log.
+A task becomes `done` in the pull request that delivers it (the status is set in the branch's last commit and
+takes effect when the pull request merges).
 `in-progress` and `review` exist only on the task branch; `main` shows `todo` or `done`.
 
 ## Current phase: 0 — Foundation
