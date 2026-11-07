@@ -28,7 +28,7 @@ takes effect when the pull request merges).
 | T-001 | Import baseline, licence and notice | 0 | done | T-000 |
 | T-002 | Tooling: package.json, dev server, tests, lint | 0 | done | T-001 |
 | T-003 | Characterization tests: utils and network | 0 | done | T-002 |
-| T-004 | Tests for the commit guards | 0 | todo | T-002 |
+| T-004 | Tests for the commit guards | 0 | done | T-002 |
 | T-005 | Continuous integration | 0 | todo | T-003, T-004 |
 | T-006 | README and setup guide | 0 | todo | T-002 |
 | T-101 | Baseline walkthrough document | 1 | todo | T-001 |
@@ -120,7 +120,7 @@ takes effect when the pull request merges).
 
 ### T-004 — Tests for the commit guards
 
-- **Status:** todo
+- **Status:** done (2026-11-08)
 - **Goal:** Prove the existing hooks in `.githooks/` behave as intended (the hooks themselves are owner-managed
   and not edited).
 - **Context:** `.githooks/check-commit-msg.mjs`, `.githooks/check-pre-commit.mjs`, ADR-0006.
@@ -133,6 +133,10 @@ takes effect when the pull request merges).
      in a subfolder, plus a Windows backslash path; allows `src/car.js`, `README.md`, `docs/TASKS.md`.
   3. `emailFromIdent("A B <a@b.c> 1700000000 +0530")` returns `a@b.c`.
   4. Running each script as a child process gives exit code 1 for a rejected case and 0 for an accepted one.
+- **Result:** 52 tests in `tests/hooks.test.js` (84 in the suite). The guards are imported in-process and run as
+  child processes (`spawnSync`, no shell, a temp directory as working directory, pre-commit in its `--files`
+  mode, so no test calls git or touches the repository). Samples that name a vendor are built from fragments at
+  runtime, so the test file holds no literal vendor names (rule 2 of `CLAUDE.md`). The hooks are not edited.
 
 ### T-005 — Continuous integration
 
@@ -198,6 +202,8 @@ takes effect when the pull request merges).
 | 2026-11-08 | T-001 | Browser-check criterion corrected from "100 cars" to one controlled car, as in T-002 | Criterion 3 of the T-001 card |
 | 2026-11-08 | T-003 | Characterization tests added; verifier PASS (10 runs in a row green, five mutations caught), reviewer APPROVE after 2 fix iterations (a vacuous mutate test and a multi-level `feedForward` test that a skipped level could pass) | `npm run check` passed just now (32 tests); `src/` hashes equal the table below |
 | 2026-11-08 | T-003 | Quirks recorded (each pinned by a `quirk:` test, none fixed): `getIntersection` returns null for collinear overlapping segments and counts endpoint touches as hits; `polysIntersect` is false when one polygon lies fully inside another (edges only); `getRGBA(0)` is white at alpha 0; `getRandomColor` hue is `290 + r*260`, up to 550 (above 360); `NeuralNetwork([n])` builds no levels and `feedForward` then throws; `feedForward` returns the last level's own `outputs` array, so the next call overwrites an earlier result; missing inputs become `undefined`, the sum is NaN and the output is 0; `Level` draws weights row by row, then biases, and `mutate` draws biases, then weights | Tests in `tests/` |
+| 2026-11-08 | T-004 | Guard tests added; verifier PASS on the third pass (earlier passes found a vacuous comment-line test, an unpinned line-start anchor and five path rules without look-alike negatives, all fixed), reviewer APPROVE; 53 mutations of the hooks in scratch copies, none of the required ones survive | `npm run check` passed just now (84 tests); `.githooks/` and `src/` unchanged |
+| 2026-11-08 | T-004 | Guard behaviour worth knowing (pinned by tests, hooks not edited): a folder named `skills` is blocked at any depth, so a future `src/skills/` would be blocked; the assistant config folder is blocked with or without a trailing slash; trailers are rejected only at the start of a line, while the no-reply address and session link match anywhere in a line; only a `#` in column 0 marks a comment line; the "generated with" rule matches one tool phrase only; the commit-message guard exits 2 for a missing path argument but throws (exit 1) for an unreadable file, which is not tested | Tests in `tests/hooks.test.js` |
 
 ### Baseline hash table (T-001, upstream commit `8b87236`)
 
