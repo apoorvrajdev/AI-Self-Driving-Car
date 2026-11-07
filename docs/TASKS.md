@@ -3,9 +3,10 @@
 The task board for the project. One task is `in-progress` at a time. Each task is small enough to review as
 one change and has acceptance criteria that can be checked with evidence.
 
-**Statuses:** `todo` → `in-progress` → `review` (implemented and verified, waiting for the owner) → `done`
-(owner reviewed and committed). `blocked` = stopped, reason in the Log.
-Only the owner moves a task to `done`.
+**Statuses:** `todo` → `in-progress` (branch open) → `review` (pull request open, waiting for checks or an
+owner check) → `done` (pull request merged). `blocked` = stopped, reason in the Log.
+A task becomes `done` in the pull request that delivers it.
+`in-progress` and `review` exist only on the task branch; `main` shows `todo` or `done`.
 
 ## Current phase: 0 — Foundation
 
@@ -22,7 +23,7 @@ Only the owner moves a task to `done`.
 | ID | Title | Phase | Status | Depends on |
 | --- | --- | --- | --- | --- |
 | T-000 | Reference corpus | 0 | done | — |
-| T-001 | Import baseline, licence and notice | 0 | review | T-000 |
+| T-001 | Import baseline, licence and notice | 0 | done | T-000 |
 | T-002 | Tooling: package.json, dev server, tests, lint | 0 | todo | T-001 |
 | T-003 | Characterization tests: utils and network | 0 | todo | T-002 |
 | T-004 | Tests for the commit guards | 0 | todo | T-002 |
@@ -46,7 +47,8 @@ Only the owner moves a task to `done`.
 
 ### T-001 — Import baseline, licence and notice
 
-- **Status:** review (2026-11-05) — criteria 1 and 2 verified; criterion 3 is OWNER-CHECK
+- **Status:** done (2026-11-08) — criteria 1 and 2 verified 2026-11-05; criterion 3 (OWNER-CHECK) confirmed by
+  the owner: `src/index.html` opened in the browser on 2026-11-07 and worked
 - **Goal:** `src/` contains the 11 files of `9. Fine-tuning`, byte-identical, with correct credit.
 - **Context:** `reference/self-driving-car/9. Fine-tuning/`, `reference/self-driving-car/LICENSE`,
   `reference/self-driving-car/README.md`, DECISIONS ADR-0001 and ADR-0006.
@@ -167,6 +169,9 @@ Only the owner moves a task to `done`.
 | --- | --- | --- | --- |
 | 2026-11-05 | T-000 | Reference corpus cloned | Commit hashes in the T-000 card |
 | 2026-11-05 | T-001 | Baseline imported to `src/`; `LICENSE` and `NOTICE.md` added; verifier PASS, reviewer APPROVE; waiting for owner check (browser run) and commit | SHA-256 table below: 11 of 11 equal to `reference/self-driving-car/9. Fine-tuning/`, sizes equal |
+| 2026-11-07 | T-001 | Owner check passed: `src/index.html` opened in the browser and worked | Owner confirmation, recorded 2026-11-08 |
+| 2026-11-08 | T-001 | Task set to `done`. Delivered before ADR-0009 by direct commits `b005cca` and `9f8db79`, not through a pull request | Board and T-001 card |
+| 2026-11-08 | — | Process change: work is delivered through pull requests merged with a merge commit (ADR-0009); status legend updated so a task becomes `done` in the pull request that delivers it | ADR-0009 in `docs/DECISIONS.md` |
 
 ### Baseline hash table (T-001, upstream commit `8b87236`)
 
