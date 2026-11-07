@@ -63,7 +63,7 @@ takes effect when the pull request merges).
 - **Acceptance criteria:**
   1. SHA-256 of all 11 files in `src/` equals the reference files (upstream uses CRLF; keep it unchanged).
   2. `LICENSE` and `NOTICE.md` exist with the content above.
-  3. Opening `src/index.html` in Chrome shows 100 cars, traffic, sensor rays and the network panel (OWNER-CHECK).
+  3. Opening `src/index.html` in Chrome shows one controlled car, traffic, sensor rays and the network panel (OWNER-CHECK).
 - **Owner commit:** `chore: import baseline from gniziemazity/self-driving-car (MIT)` — `src/`, `LICENSE`,
   `NOTICE.md` only.
 
