@@ -7,7 +7,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "test": "vitest run --passWithNoTests",
+    "test": "vitest run",
     "lint": "eslint .",
     "format": "prettier --write --no-error-on-unmatched-pattern eslint.config.js vite.config.js package.json .prettierrc tests",
     "check": "npm run lint && npm test"
