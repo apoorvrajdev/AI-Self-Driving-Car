@@ -1,0 +1,23 @@
+{
+  "name": "ai-self-driving-car",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "vite",
+    "test": "vitest run --passWithNoTests",
+    "lint": "eslint .",
+    "format": "prettier --write --no-error-on-unmatched-pattern eslint.config.js vite.config.js package.json .prettierrc tests",
+    "check": "npm run lint && npm test"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "eslint": "10.14.0",
+    "globals": "17.14.0",
+    "prettier": "3.9.10",
+    "vite": "8.3.6",
+    "vitest": "4.1.12"
+  }
+}
