@@ -8,7 +8,7 @@ only while a pull request waits for an owner check; a normal task goes straight 
 `blocked` = stopped, reason in the Log.
 A task becomes `done` in the pull request that delivers it (the status is set in the branch's last commit and
 takes effect when the pull request merges).
-`in-progress` and `review` exist only on the task branch; `main` shows `todo` or `done`.
+`in-progress` and `review` exist only on the task branch; `main` shows `todo`, `blocked` or `done`.
 
 ## Current phase: 0 — Foundation
 
