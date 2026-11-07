@@ -26,7 +26,7 @@ takes effect when the pull request merges).
 | --- | --- | --- | --- | --- |
 | T-000 | Reference corpus | 0 | done | — |
 | T-001 | Import baseline, licence and notice | 0 | done | T-000 |
-| T-002 | Tooling: package.json, dev server, tests, lint | 0 | todo | T-001 |
+| T-002 | Tooling: package.json, dev server, tests, lint | 0 | review | T-001 |
 | T-003 | Characterization tests: utils and network | 0 | todo | T-002 |
 | T-004 | Tests for the commit guards | 0 | todo | T-002 |
 | T-005 | Continuous integration | 0 | todo | T-003, T-004 |
@@ -69,7 +69,7 @@ takes effect when the pull request merges).
 
 ### T-002 — Tooling: package.json, dev server, tests, lint
 
-- **Status:** todo
+- **Status:** review (2026-11-08) — criteria 1, 3 and 4 verified; criterion 2 is OWNER-CHECK (browser run)
 - **Goal:** Standard commands for running, testing and linting, without touching `src/`.
 - **Context:** ARCHITECTURE §5, ADR-0002, `.gitignore`, `.gitattributes`.
 - **Deliverables:** `package.json` (`"private": true`, `"type": "module"`, `"engines": {"node": ">=20"}`;
@@ -82,6 +82,16 @@ takes effect when the pull request merges).
   2. `npm run dev` serves the unchanged simulation (OWNER-CHECK).
   3. `npm run lint` passes; `npm run check` runs lint then tests.
   4. `src/` hashes unchanged.
+- **Result:** pinned vite 8.3.6, vitest 4.1.12, eslint 10.14.0, @eslint/js 10.0.1, globals 17.14.0, prettier
+  3.9.10 (all MIT). Vitest 5.1.0 needs Node 22.12 or newer, so 4.1.12 keeps `engines` at `>=20` (owner decision).
+  `test` uses `--passWithNoTests` until T-003 adds tests; remove the flag then. `format` covers config files and
+  `tests/` only, so it never rewrites `README.md` or `docs/`.
+  `src/visualizer.js` is UTF-16LE with a BOM; Vite cannot parse it, so `vite.config.js` has a small plugin that
+  decodes it when served (`src/` unchanged). Remove it if Phase 2 re-encodes the file.
+  Quirks: `eslint.config.js` turns off `no-useless-assignment` for `.githooks/*.mjs` (it flags
+  `check-pre-commit.mjs:43`, which is owner-managed); `npm install` reports 4 moderate audit findings in
+  dev-only eslint packages (`npm audit --omit=dev` reports none); Vite serves `.js` with an inline source-map
+  comment appended, so served bytes differ from `src/` (files on disk are byte-identical).
 
 ### T-003 — Characterization tests: utils and network
 
@@ -174,6 +184,7 @@ takes effect when the pull request merges).
 | 2026-11-07 | T-001 | Owner check passed: `src/index.html` opened in the browser and worked | Owner confirmation, recorded 2026-11-08 |
 | 2026-11-08 | T-001 | Task set to `done`. Delivered before ADR-0009 by direct commits `b005cca` and `9f8db79`, not through a pull request | Board and T-001 card |
 | 2026-11-08 | — | Process change: work is delivered through pull requests merged with a merge commit (ADR-0009); status legend updated so a task becomes `done` in the pull request that delivers it | ADR-0009 in `docs/DECISIONS.md` |
+| 2026-11-08 | T-002 | Tooling added; verifier PASS (iteration 2; iteration 1 found Vite returning 500 for the UTF-16 `src/visualizer.js`, fixed in `vite.config.js`), reviewer APPROVE; status `review` until the owner confirms the browser run of `npm run dev` | `npm run check` passed just now (0 tests); `npm ci` in a clean copy passed; `src/` hashes equal the table below |
 
 ### Baseline hash table (T-001, upstream commit `8b87236`)
 
