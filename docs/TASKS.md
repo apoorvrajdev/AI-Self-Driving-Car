@@ -26,7 +26,7 @@ takes effect when the pull request merges).
 | --- | --- | --- | --- | --- |
 | T-000 | Reference corpus | 0 | done | — |
 | T-001 | Import baseline, licence and notice | 0 | done | T-000 |
-| T-002 | Tooling: package.json, dev server, tests, lint | 0 | review | T-001 |
+| T-002 | Tooling: package.json, dev server, tests, lint | 0 | done | T-001 |
 | T-003 | Characterization tests: utils and network | 0 | todo | T-002 |
 | T-004 | Tests for the commit guards | 0 | todo | T-002 |
 | T-005 | Continuous integration | 0 | todo | T-003, T-004 |
@@ -69,7 +69,9 @@ takes effect when the pull request merges).
 
 ### T-002 — Tooling: package.json, dev server, tests, lint
 
-- **Status:** review (2026-11-08) — criteria 1, 3 and 4 verified; criterion 2 is OWNER-CHECK (browser run)
+- **Status:** done (2026-11-08) — criteria 1, 3 and 4 verified; criterion 2 (OWNER-CHECK) confirmed by the
+  owner: `npm run dev` at localhost:5173 showed the road, traffic, sensor rays and network panel, same as the
+  direct `index.html` view
 - **Goal:** Standard commands for running, testing and linting, without touching `src/`.
 - **Context:** ARCHITECTURE §5, ADR-0002, `.gitignore`, `.gitattributes`.
 - **Deliverables:** `package.json` (`"private": true`, `"type": "module"`, `"engines": {"node": ">=20"}`;
@@ -79,7 +81,9 @@ takes effect when the pull request merges).
   `.prettierrc`, `.prettierignore` (excludes `src/`, `.githooks/`, lockfile); `.editorconfig`.
 - **Acceptance criteria:**
   1. `npm install` succeeds from a clean checkout.
-  2. `npm run dev` serves the unchanged simulation (OWNER-CHECK).
+  2. `npm run dev` serves the unchanged simulation: one controlled car, traffic, sensor rays and the network
+     panel, as `src/index.html` opened directly. The page loads 8 scripts and 1 stylesheet; `car.js` loads
+     `car.png` (OWNER-CHECK).
   3. `npm run lint` passes; `npm run check` runs lint then tests.
   4. `src/` hashes unchanged.
 - **Result:** pinned vite 8.3.6, vitest 4.1.12, eslint 10.14.0, @eslint/js 10.0.1, globals 17.14.0, prettier
@@ -185,6 +189,7 @@ takes effect when the pull request merges).
 | 2026-11-08 | T-001 | Task set to `done`. Delivered before ADR-0009 by direct commits `b005cca` and `9f8db79`, not through a pull request | Board and T-001 card |
 | 2026-11-08 | — | Process change: work is delivered through pull requests merged with a merge commit (ADR-0009); status legend updated so a task becomes `done` in the pull request that delivers it | ADR-0009 in `docs/DECISIONS.md` |
 | 2026-11-08 | T-002 | Tooling added; verifier PASS (iteration 2; iteration 1 found Vite returning 500 for the UTF-16 `src/visualizer.js`, fixed in `vite.config.js`), reviewer APPROVE; status `review` until the owner confirms the browser run of `npm run dev` | `npm run check` passed just now (0 tests); `npm ci` in a clean copy passed; `src/` hashes equal the table below |
+| 2026-11-08 | T-002 | Owner check passed: `npm run dev` at localhost:5173 showed the road, traffic, sensor rays and network panel, the visualizer loaded, console showed only a favicon 404 and a browser-extension warning. The baseline shows one controlled car, not 100; criterion text corrected. Owner kept the `.githooks` lint override and accepted the dev-only audit findings. Task set to `done` | Owner confirmation |
 
 ### Baseline hash table (T-001, upstream commit `8b87236`)
 
