@@ -105,6 +105,8 @@ Accepted decisions change only through a new ADR.
 - **Decision:** Accepted by the owner on 2026-11-09. Phase 2 introduces a fixed time step, a seeded RNG and a headless runner before any
   new driving feature. The refactor must reproduce golden trajectories recorded from the baseline.
 - **Consequences:** Phase 2 adds no visible features but makes testing, training and fair comparison possible.
+- **Revisit:** At T-103, if recording a baseline run for the golden trajectories proves impractical, revisit
+  this ADR (through a new ADR) before starting Phase 2.
 
 ## ADR-0009
 
