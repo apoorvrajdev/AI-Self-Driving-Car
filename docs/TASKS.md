@@ -10,7 +10,22 @@ A task becomes `done` in the pull request that delivers it (the status is set in
 takes effect when the pull request merges).
 `in-progress` and `review` exist only on the task branch; `main` shows `todo`, `blocked` or `done`.
 
-## Current phase: 0 — Foundation
+## Current phase: 1 — Understand and measure the baseline
+
+Explain the original simulation, run it headless and unchanged, and record reference runs that the Phase 2
+restructure must reproduce (ADR-0008, ADR-0010). `src/` stays byte-identical throughout.
+
+**Gate (owner signs off):**
+
+- [ ] `docs/baseline-walkthrough.md` is read by the owner, who can explain the frame loop with it
+- [ ] The headless harness runs the unmodified baseline; `src/` hashes still equal the T-001 table
+- [ ] Golden fixtures are recorded, and the replay test is green locally (Windows, Node 24) and in CI (Linux,
+      Node 22)
+- [ ] `docs/baseline-metrics.md` records distance, crashes and runtime for every recorded scenario
+- [ ] Every test task passed a mutation check (learned rule, 2026-11-08)
+- [ ] ADR-0010 accepted or revised
+
+## Phase 0 — Foundation
 
 **Gate (owner signs off): signed by the owner on 2026-11-09**
 
@@ -22,7 +37,8 @@ takes effect when the pull request merges).
 
 ## Board
 
-Phase 0 gate: signed by the owner on 2026-11-09. T-000 to T-006 are `done`; Phase 1 may be planned.
+Phase 0 gate: signed by the owner on 2026-11-09. Phase 1 is planned (T-101 to T-103); T-101 and T-102 can
+start in either order, T-103 needs T-102.
 
 | ID | Title | Phase | Status | Depends on |
 | --- | --- | --- | --- | --- |
@@ -181,18 +197,130 @@ Phase 0 gate: signed by the owner on 2026-11-09. T-000 to T-006 are `done`; Phas
 - **Status:** todo · **Phase 1**
 - **Goal:** `docs/baseline-walkthrough.md` explains each baseline file and the frame loop in plain language,
   with `path:line` references, so the owner can explain every part in an interview.
+- **Context:** `src/*.js`, `src/index.html`, ARCHITECTURE §2 and §6, the T-003 and T-004 quirks in the Log,
+  `tests/utils.test.js`, `tests/network.test.js`.
+- **Deliverables:**
+  - `docs/baseline-walkthrough.md`:
+    - one section per file, in `index.html` load order (`visualizer.js`, `network.js`, `sensor.js`,
+      `utils.js`, `road.js`, `controls.js`, `car.js`, `main.js`), plus `index.html` and `style.css` briefly
+    - the frame loop step by step, following `main.js` `animate`
+    - the path from sensor readings to network outputs to controls to movement
+    - the learning cycle (save, discard, mutate on reload)
+    - coordinates and units
+    - the known quirks, linked to the Log rather than repeated
+    - a short glossary
+  - ARCHITECTURE §2 corrected wherever the walkthrough shows it is wrong or stale (for example "no tests" under
+    Known limitations).
+- **Acceptance criteria:**
+  1. Every baseline file has a section, and the frame-loop section follows the order of statements in `animate`.
+  2. Every `path:line` reference points at the code the sentence describes. The verifier checks every one with
+     a throwaway script and lists any mismatch.
+  3. No statement contradicts the code or a characterization test. Each numeric constant quoted (speeds,
+     ray count, network shape, mutation amount) matches the source.
+  4. The owner reads the document and confirms they can explain the frame loop with it (OWNER-CHECK).
+- **Verification:** verifier reference check (criterion 2) plus a constants table checked against `src/`;
+  reviewer reads for accuracy and plain language; `npm run check` green.
+- **Branch and commits:** `docs/t-101-baseline-walkthrough`; `docs(baseline): add baseline walkthrough`,
+  `docs(architecture): correct the baseline section` (only if §2 needs it), `docs(tasks): complete T-101`.
+- **Size:** about 250 to 350 lines of prose; no code.
 
 ### T-102 — Headless harness for the unmodified baseline
 
 - **Status:** todo · **Phase 1**
 - **Goal:** Run the original `src/` code in Node with stubbed canvas, image, `localStorage` and a seeded
   `Math.random`, stepping `animate` a fixed number of times — without editing `src/`.
+- **Context:** `src/index.html` (load order), `src/main.js`, `src/car.js`, `src/sensor.js`, `src/controls.js`,
+  `src/visualizer.js` (UTF-16LE with BOM), `tests/helpers/loadLegacy.js`, `vite.config.js` (UTF-16 decoding),
+  ADR-0008, ADR-0010.
+- **Deliverables:**
+  - `tests/helpers/headless.js` (`// @ts-check`, JSDoc): `createBaselineSim({ seed, savedBrain })`.
+    - Loads the eight scripts in `index.html` order into one `node:vm` context. `visualizer.js` is decoded
+      from UTF-16LE when it starts with a byte-order mark; other files are read as UTF-8.
+    - Stubs, all inside the context:
+      - `document.getElementById` and `document.createElement('canvas')` return canvas stubs.
+      - A canvas stub has `width`, `height` and `getContext('2d')`. The context stub has no-op drawing
+        methods, assignable properties and a `canvas` back-reference, which `visualizer.js` reads.
+      - `Image` never fires `onload`; the mask only affects drawing.
+      - `localStorage` is in memory and can be pre-loaded with `bestBrain`.
+      - `window.innerHeight` is fixed at 800.
+      - `requestAnimationFrame` stores the callback without scheduling it.
+    - `Math.random` is Mulberry32 seeded with `seed` (reused from `loadLegacy.js`).
+    - Returns:
+      - `step(n)`: calls the stored `animate` callback `n` times; one call is one tick, with a timestamp of
+        `tick × 1000/60` ms.
+      - `state()`: a plain JSON snapshot with `tick`, the index of the best car, every AI car's `x`, `y`,
+        `angle`, `speed` and `damaged`, every traffic car's state, and the best car's brain.
+      - `save()` and `discard()`: call the page's own functions.
+      - `storage`: the localStorage stub.
+    - Top-level `const` and `let` values in `main.js` (`cars`, `traffic`, `bestCar`) are read by evaluating
+      their names in the context.
+  - `loadLegacy.js` may share the reader and the generator with the harness, but the T-003 tests stay
+    unchanged and green.
+  - `tests/headless.test.js`.
+  - The provenance and licence of Mulberry32 are confirmed by the researcher with a source, and recorded in
+    `NOTICE.md` (it is already used since T-003).
+- **Acceptance criteria:**
+  1. The harness runs all eight baseline scripts unedited, and the `src/` hashes still equal the T-001 table.
+  2. At tick 0 there are 100 AI cars at the centre of lane 1 with `y = 100`, and 7 traffic cars at the lanes
+     and `y` values written in `main.js` (lines 24 to 32).
+  3. `step(n)` advances exactly `n` ticks. After 100 ticks, a traffic car's `y` and `speed` equal an independent
+     calculation in the test, written from the movement rules in `car.js` (`#move`), not taken from the harness.
+  4. The same seed gives identical `state()` JSON after 500 ticks; seeds 1 and 2 give different brains.
+  5. Pre-loading `bestBrain`: car 0's brain equals it exactly, and every other car's differs (`mutate`, 0.1).
+     `save()` writes the best car's brain to the stub, and `discard()` removes it.
+  6. The host is untouched: `globalThis.Math.random` is unchanged, and `document`, `window`, `localStorage`
+     and `Car` stay undefined in the host.
+  7. The time for 1,000 ticks is measured and recorded in the Log, with no threshold set.
+  8. Mutation check: the verifier applies at least five mutations in scratch copies (off-by-one in `step`,
+     traffic not updated, a wrong load order, the seed ignored, `onload` fired), and the tests catch every one.
+  9. Mulberry32's licence is confirmed with a cited source, and `NOTICE.md` is updated.
+- **Verification:** `npm run check` green, run 10 times in a row; the mutation table (criterion 8); a hash
+  check of `src/`.
+- **Branch and commits:** `test/t-102-headless-harness`; `test(harness): run the unmodified baseline
+  headless`, `docs(notice): record Mulberry32 provenance`, `docs(tasks): complete T-102`.
+- **Size:** about 150 lines of harness and 150 lines of tests.
 
 ### T-103 — Baseline metrics and golden trajectories
 
 - **Status:** todo · **Phase 1**
 - **Goal:** Record, for fixed seeds, the best car's distance, crash count and per-tick positions as JSON
   fixtures. These become the golden reference for the Phase 2 restructure (ADR-0008).
+- **Context:** `tests/helpers/headless.js` (T-102), ADR-0008 (including its revisit note), ADR-0010,
+  `.github/workflows/ci.yml`.
+- **Deliverables:**
+  - Four scenarios of 1,000 ticks each:
+    - `seed-1`, `seed-2`, `seed-3`: fresh random brains
+    - `seed-4-gen2`: the best brain saved at the end of `seed-1`, pre-loaded as `bestBrain` (the original
+      learning loop, one generation on)
+  - `tests/golden/record.mjs` and the npm script `golden:record`. It writes `tests/golden/<scenario>.json` with:
+    - `meta`: format version, upstream commit, seed, tick count, the Node version used to record
+    - per tick: the best car's index, `x`, `y`, `angle`, `speed` and `damaged`, and the number of crashed AI cars
+    - at the final tick: the full state of all AI cars and traffic cars
+    - `metrics`: best distance in pixels (100 − the best car's `y`), crashed and surviving AI cars
+  - The recorder rejects `NaN` and infinities (ADR-0010).
+  - `tests/golden.test.js` replays each scenario through the harness and compares every number exactly. On a
+    mismatch it reports the first tick, car and field that differ.
+  - `docs/baseline-metrics.md`: a table per scenario with best distance, crashes, survivors and runtime for
+    1,000 ticks, plus how to re-record and when that is allowed (ADR-0010).
+  - ARCHITECTURE §5 lists `tests/golden/`.
+- **Acceptance criteria:**
+  1. The four fixtures exist, are produced only by `npm run golden:record`, and the test never writes them.
+  2. The replay test is green locally (Windows, Node 24) and in CI (Linux, Node 22) on the task's pull request.
+     If the two disagree, stop: set the task to `blocked`, record the first divergence, and revisit ADR-0010
+     and ADR-0008 with the owner.
+  3. Mismatch reporting works: on a scratch copy with a deliberately changed fixture value, the failure message
+     names the scenario, tick, car and field.
+  4. Mutation check: on scratch copies of `src/` (never the repository's `src/`), the replay fails when
+     `friction` in `car.js` changes from 0.05 to 0.0500001, when the ray count changes, and when `mutate` uses
+     0.11 instead of 0.1.
+  5. The numbers in `docs/baseline-metrics.md` equal the `metrics` in the fixtures, checked by a script.
+  6. The fixtures add less than 1 MB in total, and `src/` hashes are unchanged.
+- **Verification:** `npm run check` green; `gh pr checks` green on Node 22; the mutation and mismatch tables;
+  fixture sizes.
+- **Branch and commits:** `test/t-103-golden-trajectories`; `test(golden): add recorder and replay test`,
+  `test(golden): record baseline fixtures`, `docs(metrics): add baseline metrics`, `docs(tasks): complete T-103`.
+- **Size:** about 100 lines for the recorder, 120 for the test and 60 for the metrics doc; generated fixtures
+  are not counted.
 
 ---
 
@@ -229,6 +357,7 @@ Phase 0 gate: signed by the owner on 2026-11-09. T-000 to T-006 are `done`; Phas
 | 2026-11-09 | — | History check on `main` before sign-off: 33 commits, one author (Apoorv Raj `<apoorvrajmgr@gmail.com>`); committers are the owner (24) and GitHub `<noreply@github.com>` (9: the 8 merge commits and the web-created "Initial commit" `3708de4`); 0 commits with a co-author, session, vendor or "generated with" line. Gate item 4 reworded to allow GitHub as committer of merge commits | `git log main` format and `--grep` counts, run read-only |
 | 2026-11-09 | — | ADR-0007 and ADR-0008 accepted by the owner; ADR-0008 given a note to revisit it at T-103 if recording a baseline run proves impractical | `docs/DECISIONS.md` |
 | 2026-11-09 | — | Phase 0 gate signed by the owner: all five gate boxes ticked | Gate list and board note at the top of this file |
+| 2026-11-09 | — | Phase 1 planned: T-101 to T-103 written out with criteria, verification and commits; Phase 1 gate added; ADR-0010 proposed (exact comparison of golden trajectories). Research: ECMA-262 §21.3.2 and §6.1.6.1; Node 22 and 24 use V8's fdlibm port for `sin`, `cos`, `atan2`; V8 main moved to LLVM libm in May 2026 | ADR-0010 in `docs/DECISIONS.md`; planning pull request awaiting owner approval |
 
 ### Baseline hash table (T-001, upstream commit `8b87236`)
 
