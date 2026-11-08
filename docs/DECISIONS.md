@@ -13,8 +13,8 @@ Accepted decisions change only through a new ADR.
 | [0004](#adr-0004) | Avoid AGPL-licensed models | Accepted | 2026-11-05 |
 | [0005](#adr-0005) | Use virtual-world as the world and map layer | Accepted | 2026-11-05 |
 | [0006](#adr-0006) | Single-author repository with enforced commit identity | Accepted · amended by ADR-0009 | 2026-11-05 |
-| [0007](#adr-0007) | Modular stack with swappable drivers and a safety supervisor | Proposed | 2026-11-05 |
-| [0008](#adr-0008) | Determinism before features | Proposed | 2026-11-05 |
+| [0007](#adr-0007) | Modular stack with swappable drivers and a safety supervisor | Accepted | 2026-11-05 |
+| [0008](#adr-0008) | Determinism before features | Accepted | 2026-11-05 |
 | [0009](#adr-0009) | Pull-request delivery flow | Accepted | 2026-11-07 |
 
 ---
@@ -86,23 +86,23 @@ Accepted decisions change only through a new ADR.
 
 ## ADR-0007
 
-**Modular stack with swappable drivers and a safety supervisor** · Proposed · 2026-11-05
+**Modular stack with swappable drivers and a safety supervisor** · Accepted · 2026-11-05
 
 - **Context:** Modern research includes end-to-end and vision-language-action driving models, which need large
   real datasets and GPUs. Deployed systems are commonly organised as modular pipelines.
 - **Options:** (a) end-to-end learned driver only; (b) modular stack only; (c) modular stack plus swappable
   learned drivers, all behind one `driver.act()` contract, followed by an independent safety supervisor.
-- **Decision (proposed):** (c).
+- **Decision:** (c). Accepted by the owner on 2026-11-09.
 - **Consequences:** Every driver is compared on the same scenarios; the original evolved network remains as a
   baseline driver; end-to-end research is documented, not built.
 
 ## ADR-0008
 
-**Determinism before features** · Proposed · 2026-11-05
+**Determinism before features** · Accepted · 2026-11-05
 
 - **Context:** The baseline ties physics to the frame rate and uses unseeded randomness, so results cannot be
   reproduced or tested.
-- **Decision (proposed):** Phase 2 introduces a fixed time step, a seeded RNG and a headless runner before any
+- **Decision:** Accepted by the owner on 2026-11-09. Phase 2 introduces a fixed time step, a seeded RNG and a headless runner before any
   new driving feature. The refactor must reproduce golden trajectories recorded from the baseline.
 - **Consequences:** Phase 2 adds no visible features but makes testing, training and fair comparison possible.
 
