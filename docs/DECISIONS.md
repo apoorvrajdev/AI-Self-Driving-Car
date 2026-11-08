@@ -16,6 +16,7 @@ Accepted decisions change only through a new ADR.
 | [0007](#adr-0007) | Modular stack with swappable drivers and a safety supervisor | Accepted | 2026-11-05 |
 | [0008](#adr-0008) | Determinism before features | Accepted | 2026-11-05 |
 | [0009](#adr-0009) | Pull-request delivery flow | Accepted | 2026-11-07 |
+| [0010](#adr-0010) | Golden trajectories: exact comparison, deliberate re-recording | Proposed | 2026-11-09 |
 
 ---
 
@@ -132,6 +133,39 @@ Accepted decisions change only through a new ADR.
 - **Consequences:** ADR-0006 still applies, with this amendment: changes reach `main` only through a merged pull
   request. A task becomes `done` in the pull request that delivers it. Once continuous integration exists
   (T-005), its checks gate every merge.
+
+## ADR-0010
+
+**Golden trajectories: exact comparison, deliberate re-recording** · Proposed · 2026-11-09
+
+- **Context:** T-103 records runs of the unmodified baseline that the Phase 2 restructure must reproduce
+  (ADR-0008). Sources checked on 2026-11-09:
+  - ECMAScript leaves `Math.sin`, `cos`, `atan2` and `hypot` "implementation-approximated" (ECMA-262 §21.3.2),
+    while `+ - * /` are exact IEEE 754 binary64 operations with round-ties-to-even (§6.1.6.1).
+  - Node 22 (V8 12.4) and Node 24 (V8 13.6) compute `sin`, `cos` and `atan2` with V8's own fdlibm port
+    (`src/base/ieee754.cc`), not the platform's maths library. The 2-argument `Math.hypot` used by the baseline
+    reduces to the same operations in both.
+  - V8's main branch moved `sin`, `cos` and `atan2` to LLVM's libm in May 2026 (commits `7c1d2c3`, `43f04a5`).
+    A future Node major will ship that change, and results may differ in the last bit.
+  - The simulation is chaotic: one bit of difference can flip a collision or sensor comparison, after which
+    the runs diverge instead of drifting, so no fixed tolerance separates "equal" from "different".
+- **Options:** (a) exact equality of every recorded number; (b) a fixed numeric tolerance; (c) compare summary
+  metrics only (distance, crash count).
+- **Decision (proposed):** (a).
+  - Fixtures are JSON. A JavaScript number written by `JSON.stringify` reads back as the same number. The sign
+    of zero is not compared (JSON writes `-0` as `0`), and the recorder rejects `NaN` and infinities.
+  - A mismatch reports the first tick, car and field that differ, not just "not equal".
+  - Fixtures are written only by an explicit record command, run in a task whose card says so. Tests never
+    write fixtures.
+  - CI keeps a pinned Node major (22). Moving CI or the local toolchain to a Node major with a different V8
+    maths library means checking the goldens in that task; if they change, they are re-recorded there, with
+    a Log entry that names both Node versions.
+- **Consequences:**
+  - The strongest possible guard for the Phase 2 restructure: any change of behaviour fails a test.
+  - Phase 2 must keep the baseline's order of arithmetic operations until the goldens are deliberately
+    retired, because even a reordered sum can change the last bit.
+  - Equality between Windows with Node 24 (local) and Linux with Node 22 (CI) is an assumption, checked by
+    T-103. If it fails, this ADR and ADR-0008 are revisited before Phase 2 (the ADR-0008 revisit note).
 
 ---
 
