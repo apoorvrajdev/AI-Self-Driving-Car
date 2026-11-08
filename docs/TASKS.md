@@ -30,7 +30,7 @@ takes effect when the pull request merges).
 | T-003 | Characterization tests: utils and network | 0 | done | T-002 |
 | T-004 | Tests for the commit guards | 0 | done | T-002 |
 | T-005 | Continuous integration | 0 | done | T-003, T-004 |
-| T-006 | README and setup guide | 0 | todo | T-002 |
+| T-006 | README and setup guide | 0 | done | T-002 |
 | T-101 | Baseline walkthrough document | 1 | todo | T-001 |
 | T-102 | Headless harness for the unmodified baseline | 1 | todo | T-003 |
 | T-103 | Baseline metrics and golden trajectories | 1 | todo | T-102 |
@@ -158,13 +158,21 @@ takes effect when the pull request merges).
 
 ### T-006 — README and setup guide
 
-- **Status:** todo
+- **Status:** done (2026-11-09) — the owner confirmed the two OWNER-CHECK items: `git config core.hooksPath`
+  prints `.githooks` and `git config authorguard.email` prints the owner's address, so the hook commands in
+  `docs/setup.md` are correct; and the `npm run dev` render (road, traffic, sensor rays, network panel at
+  localhost:5173) was seen on 2026-11-08
 - **Goal:** A newcomer can understand and run the project in five minutes.
 - **Deliverables:** `README.md` (what it is, status, quick start, short project tree, links to `docs/`,
   credits and licence, CI badge); `docs/setup.md` (prerequisites with detected versions, commands, enabling
   the hooks with `core.hooksPath` and `authorguard.email`).
 - **Acceptance criteria:** 1. Every command in both files was run and works.
   2. Nothing ignored by git is listed in the project tree.
+- **Result:** `README.md` (what it is, status, quick start, project layout, documentation links, credits and
+  licence, CI badge) and `docs/setup.md` (prerequisites with detected versions Node 24.12.0, npm 11.6.2, Git
+  2.52.0; install, run, test and lint commands; enabling the hooks). The npm commands were run in a clean
+  `git archive` copy; the two `git config` commands were run by the owner. The hook files are not marked
+  executable, so Git would skip them on Linux or macOS; `setup.md` says so and `.githooks/` is not edited.
 
 ### T-101 — Baseline walkthrough document
 
@@ -214,6 +222,8 @@ takes effect when the pull request merges).
 | 2026-11-08 | T-004 | Guard tests added; verifier PASS on the third pass (earlier passes found a vacuous comment-line test, an unpinned line-start anchor and five path rules without look-alike negatives, all fixed), reviewer APPROVE; 53 mutations of the hooks in scratch copies, none of the required ones survive | `npm run check` passed just now (84 tests); `.githooks/` and `src/` unchanged |
 | 2026-11-08 | T-004 | Guard behaviour worth knowing (pinned by tests, hooks not edited): a folder named `skills` is blocked at any depth, so a future `src/skills/` would be blocked; the assistant config folder is blocked with or without a trailing slash; trailers are rejected only at the start of a line, while the no-reply address and session link match anywhere in a line; only a `#` in column 0 marks a comment line; the "generated with" rule matches one tool phrase only; the commit-message guard exits 2 for a missing path argument but throws (exit 1) for an unreadable file, which is not tested | Tests in `tests/hooks.test.js` |
 | 2026-11-08 | T-005 | CI workflow added; verifier PASS on criterion 1 (structural YAML check, not a full parse: no YAML parser is installed and none was added), reviewer APPROVE; criterion 2 was pending until the PR run | `npm run check` passed just now (84 tests); `npm ci`, lint and test passed in a clean `git archive HEAD` copy; action majors from the GitHub releases API (checkout v7.0.1, setup-node v7.1.0) |
+| 2026-11-09 | T-006 | README and setup guide added; verifier PASS (`npm ci`, test, lint, check, format and dev run in a clean `git archive` copy; 84 tests; dev server returned 200 for `/`, `/visualizer.js`, `/main.js`), reviewer APPROVE with Minor findings fixed | Verifier table; no tracked or ignored-path mismatch in the README tree (`git check-ignore` printed nothing) |
+| 2026-11-09 | T-006 | Owner checks passed: `git config core.hooksPath` prints `.githooks` and `git config authorguard.email` prints the owner's address (setup.md hook commands correct); `npm run dev` render (road, traffic, sensor rays, network panel) confirmed, seen 2026-11-08 | Owner confirmation |
 
 ### Baseline hash table (T-001, upstream commit `8b87236`)
 
