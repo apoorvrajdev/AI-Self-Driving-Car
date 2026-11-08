@@ -12,15 +12,17 @@ takes effect when the pull request merges).
 
 ## Current phase: 0 — Foundation
 
-**Gate (owner signs off):**
+**Gate (owner signs off): signed by the owner on 2026-11-09**
 
-- [ ] The original simulation runs from `npm run dev` exactly as the original `index.html` does
-- [ ] `src/` files are byte-identical to upstream (hash table recorded in the Log)
-- [ ] `npm run check` is green locally and in CI
-- [ ] Every commit is authored by the owner, with no co-author trailers; merge commits created by GitHub may show GitHub as committer
-- [ ] ADR-0007 and ADR-0008 accepted or revised
+- [x] The original simulation runs from `npm run dev` exactly as the original `index.html` does
+- [x] `src/` files are byte-identical to upstream (hash table recorded in the Log)
+- [x] `npm run check` is green locally and in CI
+- [x] Every commit is authored by the owner, with no co-author trailers; merge commits created by GitHub may show GitHub as committer
+- [x] ADR-0007 and ADR-0008 accepted or revised
 
 ## Board
+
+Phase 0 gate: signed by the owner on 2026-11-09. T-000 to T-006 are `done`; Phase 1 may be planned.
 
 | ID | Title | Phase | Status | Depends on |
 | --- | --- | --- | --- | --- |
@@ -224,6 +226,9 @@ takes effect when the pull request merges).
 | 2026-11-08 | T-005 | CI workflow added; verifier PASS on criterion 1 (structural YAML check, not a full parse: no YAML parser is installed and none was added), reviewer APPROVE; criterion 2 was pending until the PR run | `npm run check` passed just now (84 tests); `npm ci`, lint and test passed in a clean `git archive HEAD` copy; action majors from the GitHub releases API (checkout v7.0.1, setup-node v7.1.0) |
 | 2026-11-09 | T-006 | README and setup guide added; verifier PASS (`npm ci`, test, lint, check, format and dev run in a clean `git archive` copy; 84 tests; dev server returned 200 for `/`, `/visualizer.js`, `/main.js`), reviewer APPROVE with Minor findings fixed | Verifier table; no tracked or ignored-path mismatch in the README tree (`git check-ignore` printed nothing) |
 | 2026-11-09 | T-006 | Owner checks passed: `git config core.hooksPath` prints `.githooks` and `git config authorguard.email` prints the owner's address (setup.md hook commands correct); `npm run dev` render (road, traffic, sensor rays, network panel) confirmed, seen 2026-11-08 | Owner confirmation |
+| 2026-11-09 | — | History check on `main` before sign-off: 33 commits, one author (Apoorv Raj `<apoorvrajmgr@gmail.com>`); committers are the owner (24) and GitHub `<noreply@github.com>` (9: the 8 merge commits and the web-created "Initial commit" `3708de4`); 0 commits with a co-author, session, vendor or "generated with" line. Gate item 4 reworded to allow GitHub as committer of merge commits | `git log main` format and `--grep` counts, run read-only |
+| 2026-11-09 | — | ADR-0007 and ADR-0008 accepted by the owner; ADR-0008 given a note to revisit it at T-103 if recording a baseline run proves impractical | `docs/DECISIONS.md` |
+| 2026-11-09 | — | Phase 0 gate signed by the owner: all five gate boxes ticked | Gate list and board note at the top of this file |
 
 ### Baseline hash table (T-001, upstream commit `8b87236`)
 
