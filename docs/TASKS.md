@@ -17,7 +17,7 @@ takes effect when the pull request merges).
 - [ ] The original simulation runs from `npm run dev` exactly as the original `index.html` does
 - [ ] `src/` files are byte-identical to upstream (hash table recorded in the Log)
 - [ ] `npm run check` is green locally and in CI
-- [ ] `git log` shows only the owner as author and committer, with no co-author trailers
+- [ ] Every commit is authored by the owner, with no co-author trailers; merge commits created by GitHub may show GitHub as committer
 - [ ] ADR-0007 and ADR-0008 accepted or revised
 
 ## Board
