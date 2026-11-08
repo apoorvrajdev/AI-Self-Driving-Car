@@ -29,7 +29,7 @@ takes effect when the pull request merges).
 | T-002 | Tooling: package.json, dev server, tests, lint | 0 | done | T-001 |
 | T-003 | Characterization tests: utils and network | 0 | done | T-002 |
 | T-004 | Tests for the commit guards | 0 | done | T-002 |
-| T-005 | Continuous integration | 0 | todo | T-003, T-004 |
+| T-005 | Continuous integration | 0 | done | T-003, T-004 |
 | T-006 | README and setup guide | 0 | todo | T-002 |
 | T-101 | Baseline walkthrough document | 1 | todo | T-001 |
 | T-102 | Headless harness for the unmodified baseline | 1 | todo | T-003 |
@@ -140,12 +140,21 @@ takes effect when the pull request merges).
 
 ### T-005 — Continuous integration
 
-- **Status:** todo
+- **Status:** done (2026-11-08)
 - **Goal:** Lint and tests run on every push and pull request.
 - **Deliverables:** `.github/workflows/ci.yml` — ubuntu-latest, Node 22 with npm cache, `npm ci`,
   `npm run lint`, `npm test`; current major versions of the actions.
 - **Acceptance criteria:** 1. The workflow file is valid YAML and mirrors `npm run check`.
-  2. After the owner pushes, the run is green (OWNER-CHECK).
+  2. On the task's pull request, the CI run triggered by the `pull_request` event completes green
+     (`gh pr checks <n>` shows every check passing) before the PR is merged.
+- **Result:** `.github/workflows/ci.yml`, job `lint and test` (ubuntu-latest, Node 22, npm cache): `npm ci`,
+  `npm run lint`, `npm test`, the same commands in the same order as `npm run check`, run as separate steps so a
+  failure names its step. It runs on pull requests and on pushes to `main` only: ADR-0009 forbids direct pushes
+  to `main`, and a trigger on every branch would run each PR commit twice. Permissions are `contents: read`;
+  runs of a pull request are cancelled when a newer commit arrives, runs on `main` are not. Actions:
+  `actions/checkout@v7` and `actions/setup-node@v7`. Criterion 2 was reworded from OWNER-CHECK to the PR flow;
+  the merge waits for a green `gh pr checks`. Nothing in the repo enforces the gate: making `lint and test` a
+  required status check is a repository setting for the owner.
 
 ### T-006 — README and setup guide
 
@@ -204,6 +213,7 @@ takes effect when the pull request merges).
 | 2026-11-08 | T-003 | Quirks recorded (each pinned by a `quirk:` test, none fixed): `getIntersection` returns null for collinear overlapping segments and counts endpoint touches as hits; `polysIntersect` is false when one polygon lies fully inside another (edges only); `getRGBA(0)` is white at alpha 0; `getRandomColor` hue is `290 + r*260`, up to 550 (above 360); `NeuralNetwork([n])` builds no levels and `feedForward` then throws; `feedForward` returns the last level's own `outputs` array, so the next call overwrites an earlier result; missing inputs become `undefined`, the sum is NaN and the output is 0; `Level` draws weights row by row, then biases, and `mutate` draws biases, then weights | Tests in `tests/` |
 | 2026-11-08 | T-004 | Guard tests added; verifier PASS on the third pass (earlier passes found a vacuous comment-line test, an unpinned line-start anchor and five path rules without look-alike negatives, all fixed), reviewer APPROVE; 53 mutations of the hooks in scratch copies, none of the required ones survive | `npm run check` passed just now (84 tests); `.githooks/` and `src/` unchanged |
 | 2026-11-08 | T-004 | Guard behaviour worth knowing (pinned by tests, hooks not edited): a folder named `skills` is blocked at any depth, so a future `src/skills/` would be blocked; the assistant config folder is blocked with or without a trailing slash; trailers are rejected only at the start of a line, while the no-reply address and session link match anywhere in a line; only a `#` in column 0 marks a comment line; the "generated with" rule matches one tool phrase only; the commit-message guard exits 2 for a missing path argument but throws (exit 1) for an unreadable file, which is not tested | Tests in `tests/hooks.test.js` |
+| 2026-11-08 | T-005 | CI workflow added; verifier PASS on criterion 1 (structural YAML check, not a full parse: no YAML parser is installed and none was added), reviewer APPROVE; criterion 2 was pending until the PR run | `npm run check` passed just now (84 tests); `npm ci`, lint and test passed in a clean `git archive HEAD` copy; action majors from the GitHub releases API (checkout v7.0.1, setup-node v7.1.0) |
 
 ### Baseline hash table (T-001, upstream commit `8b87236`)
 
