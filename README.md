@@ -1,11 +1,27 @@
 # AI-Self-Driving-Car
 
-[![CI](https://github.com/apoorvrajdev/AI-Self-Driving-Car/actions/workflows/ci.yml/badge.svg)](https://github.com/apoorvrajdev/AI-Self-Driving-Car/actions/workflows/ci.yml)
+**A browser driving simulation made testable and measurable, one verified step at a time.**
 
-A 2D top-down browser simulation in which cars driven by small neural networks learn to drive by evolutionary
-search. The project starts from an educational JavaScript simulation and is being turned, step by step, into a
-modular, tested and measurable autonomous-driving simulation. It is a simulation only: it never controls a real
-vehicle.
+[![CI](https://github.com/apoorvrajdev/AI-Self-Driving-Car/actions/workflows/ci.yml/badge.svg)](https://github.com/apoorvrajdev/AI-Self-Driving-Car/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+![Node.js 20+](https://img.shields.io/badge/node-%3E%3D20-339933)
+
+A 2D top-down simulation in which cars driven by small neural networks learn to drive by evolutionary search. It
+starts from an educational JavaScript project and is being rebuilt, step by step, into a modular and tested
+simulation. It is a simulation only: it never controls a real vehicle.
+
+**Why.** The original runs on unseeded randomness and physics tied to the frame rate, so a run cannot be
+reproduced or compared. This project adds tests and determinism before it adds features.
+
+## At a glance
+
+| | |
+| --- | --- |
+| **Today** | The original simulation in `src/` (11 files, byte-identical to upstream), served by Vite, with 84 passing tests |
+| **Planned** | Seeded, fixed-step, headless simulation; a road graph and traffic; swappable drivers; a safety supervisor; scenario metrics |
+| **Toolchain** | Node.js 20+, Vite, Vitest, ESLint, Prettier, all exact-pinned dev dependencies; the simulation itself uses no libraries |
+| **Delivery** | Pull requests only, merged with a merge commit; `lint and test` is a required check on `main` |
+| **Results** | None recorded yet. Reference runs of the original are planned for Phase 1 (T-103) |
 
 ## Status
 
