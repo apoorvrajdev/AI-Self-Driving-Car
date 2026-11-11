@@ -86,17 +86,31 @@ flowchart LR
 | Determinism before features | ADR-0008 is Accepted. Seeded randomness and a fixed time step are Phase 2 work, not done yet |
 | Pull requests, merge commits, one author | ADR-0009 and ADR-0006; the history check is recorded in the log |
 
+## Limitations
+
+- This is not yet an autonomous-driving system. The cars use five distance sensors and a small `[5, 6, 4]`
+  network; there is no perception, planning or safety layer.
+- Learning is manual. There is no fitness function: you save the best car's brain and reload. The "best" car is
+  the one furthest up the road, whether or not it has crashed.
+- Randomness is unseeded and physics advances per rendered frame, so runs cannot be reproduced yet (Phase 2).
+- Simulation and drawing are fused, so nothing runs headless yet (Phase 1 and 2). One straight road, no lights
+  or pedestrians.
+- No numbers are published: no benchmarks, frame rates or driving-quality metrics exist yet.
+- The commit hooks are opt-in, need Node.js, and have only been used on Windows ([docs/setup.md](docs/setup.md)).
+- `npm install` reports moderate audit findings in dev-only ESLint packages; `npm audit --omit=dev` reports none.
+
 ## Project layout
 
 ```text
 src/                    simulation code (the original files, unchanged for now)
-tests/                  characterization tests and commit-guard tests
+tests/                  characterization tests, commit-guard tests, a loader for the legacy scripts
 docs/                   architecture, decisions, tasks, setup
 .githooks/              commit guards (see docs/setup.md)
 .github/workflows/      continuous integration
+.editorconfig  .gitattributes  .gitignore  .prettierrc  .prettierignore   repository settings
 eslint.config.js        lint rules
 vite.config.js          dev server and test settings
-package.json            scripts and pinned dev dependencies
+package.json            scripts and pinned dev dependencies (with package-lock.json)
 LICENSE  NOTICE.md      licence and third-party credits
 ```
 
@@ -110,6 +124,6 @@ LICENSE  NOTICE.md      licence and third-party credits
 ## Credits and licence
 
 The simulation in `src/` is the "Self-driving car, no libraries" course code by Radu Mariescu-Istodor
-([gniziemazity/self-driving-car](https://github.com/gniziemazity/self-driving-car), folder `9. Fine-tuning`),
-used under the MIT licence. Full details are in [NOTICE.md](NOTICE.md). This project is released under the same
+([gniziemazity/self-driving-car](https://github.com/gniziemazity/self-driving-car), folder `9. Fine-tuning`,
+commit `8b87236`), used under the MIT licence. Full details are in [NOTICE.md](NOTICE.md). This project is released under the same
 MIT licence; see [LICENSE](LICENSE).
