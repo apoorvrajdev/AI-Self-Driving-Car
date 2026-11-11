@@ -32,7 +32,7 @@ criteria and the log are in [docs/TASKS.md](docs/TASKS.md).
 | Phase | Scope | State |
 | --- | --- | --- |
 | 0 | Dev server, lint, characterization tests, commit-guard tests, CI, README and setup guide (T-000 to T-006) | Done |
-| 1 | A written walkthrough of the baseline (T-101), a headless run of the unmodified code (T-102), recorded reference runs (T-103) | T-101 written, awaiting my review; T-102 and T-103 planned |
+| 1 | A written walkthrough of the baseline (T-101), a headless run of the unmodified code (T-102), recorded reference runs (T-103) | T-101 written, awaiting owner review; T-102 and T-103 planned |
 | 2 | ES modules, simulation and rendering split, fixed time step, seeded RNG, golden-trajectory tests | Planned |
 | 3 | Road graph, vehicle model, traffic lights, traffic and pedestrians, scenario files | Planned |
 | 4 | Parallel headless evolution, imitation learning, ONNX in the browser | Planned |
@@ -77,7 +77,7 @@ flowchart LR
 
 | Practice | Evidence |
 | --- | --- |
-| The original code is kept byte-identical | SHA-256 table in [docs/TASKS.md](docs/TASKS.md); `src/**` is marked `-text` in [.gitattributes](.gitattributes) |
+| The original code is kept byte-identical | SHA-256 table recorded at T-001 in [docs/TASKS.md](docs/TASKS.md); `src/**` is marked `-text` in [.gitattributes](.gitattributes) |
 | Behaviour is pinned before any change | 32 characterization tests: [utils](tests/utils.test.js) (14) and [network](tests/network.test.js) (18). Quirks are recorded, not fixed |
 | The commit guards are tested | 52 tests in [tests/hooks.test.js](tests/hooks.test.js); the guards live in [.githooks/](.githooks) |
 | Test tasks need a mutation check | Mutations of the code and the hooks were applied in scratch copies; results are in the T-003 and T-004 rows of the log |
@@ -88,8 +88,8 @@ flowchart LR
 
 ## Limitations
 
-- This is not yet an autonomous-driving system. The cars use five distance sensors and a small `[5, 6, 4]`
-  network; there is no perception, planning or safety layer.
+- This is not yet an autonomous-driving system. The cars use five distance sensors and a `[5, 6, 4]`
+  network (five sensor inputs); there is no perception, planning or safety layer.
 - Learning is manual. There is no fitness function: you save the best car's brain and reload. The "best" car is
   the one furthest up the road, whether or not it has crashed.
 - Randomness is unseeded and physics advances per rendered frame, so runs cannot be reproduced yet (Phase 2).
@@ -125,5 +125,5 @@ LICENSE  NOTICE.md      licence and third-party credits
 
 The simulation in `src/` is the "Self-driving car, no libraries" course code by Radu Mariescu-Istodor
 ([gniziemazity/self-driving-car](https://github.com/gniziemazity/self-driving-car), folder `9. Fine-tuning`,
-commit `8b87236`), used under the MIT licence. Full details are in [NOTICE.md](NOTICE.md). This project is released under the same
-MIT licence; see [LICENSE](LICENSE).
+commit `8b87236`), used under the MIT licence. Full details are in [NOTICE.md](NOTICE.md). This project is
+released under the same MIT licence; see [LICENSE](LICENSE).
