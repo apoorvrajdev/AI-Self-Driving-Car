@@ -58,6 +58,34 @@ Open <http://localhost:5173> (the address Vite prints). Other commands:
 | `npm run check` | Lint, then tests: the same steps CI runs |
 | `npm run format` | Formats the tooling files and `tests/` with Prettier |
 
+## Target architecture (planned, not built)
+
+None of these layers exists yet. Today the whole simulation is the original frame loop in `src/main.js`. This is
+the design the phases above build towards; interfaces and layer details are in
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+```mermaid
+flowchart LR
+  W["World<br/>road, traffic, physics"] --> S["Sensors"]
+  S --> D["Driver<br/>swappable"]
+  D --> SF["Safety supervisor"]
+  SF --> C["Control"]
+  C --> W
+```
+
+## Engineering practices you can verify
+
+| Practice | Evidence |
+| --- | --- |
+| The original code is kept byte-identical | SHA-256 table in [docs/TASKS.md](docs/TASKS.md); `src/**` is marked `-text` in [.gitattributes](.gitattributes) |
+| Behaviour is pinned before any change | 32 characterization tests: [utils](tests/utils.test.js) (14) and [network](tests/network.test.js) (18). Quirks are recorded, not fixed |
+| The commit guards are tested | 52 tests in [tests/hooks.test.js](tests/hooks.test.js); the guards live in [.githooks/](.githooks) |
+| Test tasks need a mutation check | Mutations of the code and the hooks were applied in scratch copies; results are in the T-003 and T-004 rows of the log |
+| CI on every pull request and push to `main` | [ci.yml](.github/workflows/ci.yml): `npm ci`, lint, tests on Node 22 |
+| Decisions are written down | 10 ADRs, 9 Accepted and 1 Proposed, in [docs/DECISIONS.md](docs/DECISIONS.md) |
+| Determinism before features | ADR-0008 is Accepted. Seeded randomness and a fixed time step are Phase 2 work, not done yet |
+| Pull requests, merge commits, one author | ADR-0009 and ADR-0006; the history check is recorded in the log |
+
 ## Project layout
 
 ```text
