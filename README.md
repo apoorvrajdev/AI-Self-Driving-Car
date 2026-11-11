@@ -25,10 +25,19 @@ reproduced or compared. This project adds tests and determinism before it adds f
 
 ## Status
 
-Phase 0, foundation. `src/` holds the original simulation, unchanged, and it runs as the original does. Around
-it sit the dev server, linting, characterization tests for the pure parts, tests for the commit guards, and
-continuous integration. Nothing in the simulation has been refactored yet. The plan is in
-[docs/TASKS.md](docs/TASKS.md) and the target design in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+Phase 0 (foundation) was signed off on 2026-11-09. Phase 1 (understand and measure the baseline) is in progress.
+`src/` holds the original simulation, unchanged, and nothing in it has been refactored yet. Tasks, acceptance
+criteria and the log are in [docs/TASKS.md](docs/TASKS.md).
+
+| Phase | Scope | State |
+| --- | --- | --- |
+| 0 | Dev server, lint, characterization tests, commit-guard tests, CI, README and setup guide (T-000 to T-006) | Done |
+| 1 | A written walkthrough of the baseline (T-101), a headless run of the unmodified code (T-102), recorded reference runs (T-103) | T-101 written, awaiting my review; T-102 and T-103 planned |
+| 2 | ES modules, simulation and rendering split, fixed time step, seeded RNG, golden-trajectory tests | Planned |
+| 3 | Road graph, vehicle model, traffic lights, traffic and pedestrians, scenario files | Planned |
+| 4 | Parallel headless evolution, imitation learning, ONNX in the browser | Planned |
+| 5 | Synthetic camera, detector, tracking, prediction, planner, safety supervisor, control | Planned |
+| 6 to 7 | Scenario suite and driver comparison; profiling, live demo and write-up | Planned |
 
 ## Quick start
 
