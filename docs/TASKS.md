@@ -53,7 +53,7 @@ cannot merge until it is green.
 | T-005 | Continuous integration | 0 | done | T-003, T-004 |
 | T-006 | README and setup guide | 0 | done | T-002 |
 | T-101 | Baseline walkthrough document | 1 | done | T-001 |
-| T-102 | Headless harness for the unmodified baseline | 1 | todo | T-003 |
+| T-102 | Headless harness for the unmodified baseline | 1 | done | T-003 |
 | T-103 | Baseline metrics and golden trajectories | 1 | todo | T-102 |
 
 ---
@@ -230,7 +230,7 @@ cannot merge until it is green.
 
 ### T-102 — Headless harness for the unmodified baseline
 
-- **Status:** todo · **Phase 1**
+- **Status:** done · **Phase 1**
 - **Goal:** Run the original `src/` code in Node with stubbed canvas, image, `localStorage` and a seeded
   `Math.random`, stepping `animate` a fixed number of times — without editing `src/`.
 - **Context:** `src/index.html` (load order), `src/main.js`, `src/car.js`, `src/sensor.js`, `src/controls.js`,
@@ -256,6 +256,8 @@ cannot merge until it is green.
         `angle`, `speed` and `damaged`, every traffic car's state, and the best car's brain.
       - `save()` and `discard()`: call the page's own functions.
       - `storage`: the localStorage stub.
+      - Test hooks: `canvases` (every canvas stub the page created; owner-approved 2026-11-14) and `brains()`
+        (the brain of every AI car, needed for criterion 5).
     - Top-level `const` and `let` values in `main.js` (`cars`, `traffic`, `bestCar`) are read by evaluating
       their names in the context.
   - `loadLegacy.js` may share the reader and the generator with the harness, but the T-003 tests stay
@@ -266,7 +268,9 @@ cannot merge until it is green.
 - **Acceptance criteria:**
   1. The harness runs all eight baseline scripts unedited, and the `src/` hashes still equal the T-001 table.
   2. At tick 0 there are 100 AI cars at the centre of lane 1 with `y = 100`, and 7 traffic cars at the lanes
-     and `y` values written in `main.js` (lines 24 to 32).
+     and `y` values written in `main.js` (lines 24 to 32), each advanced by the one update that `main.js`
+     itself performs at load (`y` less 0.15, speed 0.15). Tick 0 means "after load" (owner decision,
+     2026-11-14).
   3. `step(n)` advances exactly `n` ticks. After 100 ticks, a traffic car's `y` and `speed` equal an independent
      calculation in the test, written from the movement rules in `car.js` (`#move`), not taken from the harness.
   4. The same seed gives identical `state()` JSON after 500 ticks; seeds 1 and 2 give different brains.
@@ -290,8 +294,21 @@ cannot merge until it is green.
 - **Goal:** Record, for fixed seeds, the best car's distance, crash count and per-tick positions as JSON
   fixtures. These become the golden reference for the Phase 2 restructure (ADR-0008).
 - **Context:** `tests/helpers/headless.js` (T-102), ADR-0008 (including its revisit note), ADR-0010,
-  `.github/workflows/ci.yml`.
+  `.github/workflows/ci.yml`, `tests/helpers/loadLegacy.js`, `NOTICE.md`, `README.md` (lines 81 and 106).
 - **Deliverables:**
+  - First commit of the task, before any golden run is recorded: rewrite `makeSeededRandom` in
+    `tests/helpers/loadLegacy.js` from the CC0 C original (Tommy Ettinger's `mulberry32.c`), so that its
+    licence is verifiable (owner decision, 2026-11-14; T-102 criterion 9 was accepted with the JavaScript form
+    unverified). A test, or a script run once and shown in the PR, proves that the new function returns
+    exactly the same numbers as the current one for several seeds (at least 0, 1, 2, 3, 7 and 4294967295, the
+    first 10,000 outputs each). Then update `NOTICE.md`: licence CC0 1.0 for the function, and remove the
+    "not verified" wording. The T-003 and T-102 tests stay unchanged and green. The pre-existing line-ending
+    changes in `loadLegacy.js` are checked first (`git diff --ignore-cr-at-eol`) and are not mixed into this
+    commit.
+  - In the closing pull request of this task: update the stale test counts in `README.md` (line 81, "32
+    characterization tests: utils (14) and network (18)", and line 106, which lists only a loader for the
+    legacy scripts) so that they describe the current tests, including the headless harness tests, with the
+    counts taken from a fresh `npm test` run.
   - Four scenarios of 1,000 ticks each:
     - `seed-1`, `seed-2`, `seed-3`: fresh random brains
     - `seed-4-gen2`: the best brain saved at the end of `seed-1`, pre-loaded as `bestBrain` (the original
@@ -319,10 +336,16 @@ cannot merge until it is green.
      0.11 instead of 0.1.
   5. The numbers in `docs/baseline-metrics.md` equal the `metrics` in the fixtures, checked by a script.
   6. The fixtures add less than 1 MB in total, and `src/` hashes are unchanged.
+  7. The rewritten `makeSeededRandom` returns exactly the same numbers as the T-102 version (the seeds and
+     length in the first deliverable), shown before the commit that records fixtures; `NOTICE.md` no longer
+     says the licence is unverified, and the researcher's source for the C original is cited again.
+  8. `README.md` test counts and the `tests/` description match a fresh `npm test` run.
 - **Verification:** `npm run check` green; `gh pr checks` green on Node 22; the mutation and mismatch tables;
-  fixture sizes.
-- **Branch and commits:** `test/t-103-golden-trajectories`; `test(golden): add recorder and replay test`,
-  `test(golden): record baseline fixtures`, `docs(metrics): add baseline metrics`, `docs(tasks): complete T-103`.
+  fixture sizes; the equivalence output for criterion 7.
+- **Branch and commits:** `test/t-103-golden-trajectories`; `test(harness): rewrite makeSeededRandom from the
+  CC0 original`, `docs(notice): record the CC0 source of makeSeededRandom`, `test(golden): add recorder and
+  replay test`, `test(golden): record baseline fixtures`, `docs(metrics): add baseline metrics`,
+  `docs(readme): update the test description`, `docs(tasks): complete T-103`.
 - **Size:** about 100 lines for the recorder, 120 for the test and 60 for the metrics doc; generated fixtures
   are not counted.
 
@@ -364,6 +387,10 @@ cannot merge until it is green.
 | 2026-11-09 | — | Phase 1 planned: T-101 to T-103 written out with criteria, verification and commits; Phase 1 gate added; ADR-0010 proposed (exact comparison of golden trajectories). Research: ECMA-262 §21.3.2 and §6.1.6.1; Node 22 and 24 use V8's fdlibm port for `sin`, `cos`, `atan2`; V8 main moved to LLVM libm in May 2026 | ADR-0010 in `docs/DECISIONS.md`; planning pull request awaiting owner approval |
 | 2026-11-14 | — | `lint and test` is a required check on `main` through the `protect-main` ruleset | Owner statement; ruleset is a GitHub setting, not stored in the repo |
 | 2026-11-14 | T-101 | Owner check passed: the owner read `docs/baseline-walkthrough.md` and can explain the frame loop with it. Task set to `done` | Owner confirmation |
+| 2026-11-14 | T-102 | Headless harness added (`tests/helpers/headless.js`, `tests/headless.test.js`); `src/` untouched. Verifier PASS on iteration 2 (iteration 1 failed criterion 8: five timestamp mutants, `damaged` always false and `window.innerHeight` survived; three tests added). Reviewer APPROVE after iteration 3 (the first review required a `NOTICE.md` rewording: the JavaScript form's licence had been overclaimed) | `npm run check` passed 10 runs in a row (104 tests, run by the verifier and again after the last edits); 39 mutations in scratch copies, all killed except one equivalent (swapping `network.js` and `sensor.js`, which only declare classes and functions); `src/` hashes equal the table below |
+| 2026-11-14 | T-102 | Owner decision: tick 0 means "after load". `main.js:34` calls `animate()` once while it loads, so traffic cars start at `y` less 0.15 with speed 0.15 and every `step(n)` is the (n+1)th update; criterion 2 reworded. The Phase 2 runner and the T-103 golden files must reproduce "initial state plus one load-time update" (ADR-0010). The harness also exposes the test hooks `canvases` (owner-approved) and `brains()` (added to check criterion 5, which needs every car's brain) | Criterion 2 and the "Test hooks" bullet on the T-102 card |
+| 2026-11-14 | T-102 | Timing for criterion 7, no threshold: 1,000 ticks took 3,986 ms in the verifier's run and 4,276 ms in a first probe (Node 24.12, Windows 11); the 100 AI cars and 7 traffic cars are updated every tick | `console.info` line of the timing test |
+| 2026-11-14 | T-102 | Criterion 9 is only partly met: the original C Mulberry32 is CC0 1.0 (Tommy Ettinger's gist, checked 2026-11-14) and bryc's notes are headed "Public domain", but the licence of the StackOverflow-posted JavaScript form could not be checked (site unreachable). `NOTICE.md` says so. Owner accepted this as is on 2026-11-14, and asked that T-103 begin by rewriting the function from the C original (verified identical output) and then update `NOTICE.md`; the stale README test counts move to T-103's closing pull request | `NOTICE.md`; researcher report; T-103 card |
 
 ### Baseline hash table (T-001, upstream commit `8b87236`)
 
