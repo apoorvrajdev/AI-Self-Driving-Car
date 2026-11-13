@@ -53,7 +53,7 @@ cannot merge until it is green.
 | T-005 | Continuous integration | 0 | done | T-003, T-004 |
 | T-006 | README and setup guide | 0 | done | T-002 |
 | T-101 | Baseline walkthrough document | 1 | done | T-001 |
-| T-102 | Headless harness for the unmodified baseline | 1 | todo | T-003 |
+| T-102 | Headless harness for the unmodified baseline | 1 | done | T-003 |
 | T-103 | Baseline metrics and golden trajectories | 1 | todo | T-102 |
 
 ---
@@ -230,7 +230,7 @@ cannot merge until it is green.
 
 ### T-102 — Headless harness for the unmodified baseline
 
-- **Status:** todo · **Phase 1**
+- **Status:** done · **Phase 1**
 - **Goal:** Run the original `src/` code in Node with stubbed canvas, image, `localStorage` and a seeded
   `Math.random`, stepping `animate` a fixed number of times — without editing `src/`.
 - **Context:** `src/index.html` (load order), `src/main.js`, `src/car.js`, `src/sensor.js`, `src/controls.js`,
@@ -256,6 +256,8 @@ cannot merge until it is green.
         `angle`, `speed` and `damaged`, every traffic car's state, and the best car's brain.
       - `save()` and `discard()`: call the page's own functions.
       - `storage`: the localStorage stub.
+      - Test hooks: `canvases` (every canvas stub the page created; owner-approved 2026-11-14) and `brains()`
+        (the brain of every AI car, needed for criterion 5).
     - Top-level `const` and `let` values in `main.js` (`cars`, `traffic`, `bestCar`) are read by evaluating
       their names in the context.
   - `loadLegacy.js` may share the reader and the generator with the harness, but the T-003 tests stay
@@ -266,7 +268,9 @@ cannot merge until it is green.
 - **Acceptance criteria:**
   1. The harness runs all eight baseline scripts unedited, and the `src/` hashes still equal the T-001 table.
   2. At tick 0 there are 100 AI cars at the centre of lane 1 with `y = 100`, and 7 traffic cars at the lanes
-     and `y` values written in `main.js` (lines 24 to 32).
+     and `y` values written in `main.js` (lines 24 to 32), each advanced by the one update that `main.js`
+     itself performs at load (`y` less 0.15, speed 0.15). Tick 0 means "after load" (owner decision,
+     2026-11-14).
   3. `step(n)` advances exactly `n` ticks. After 100 ticks, a traffic car's `y` and `speed` equal an independent
      calculation in the test, written from the movement rules in `car.js` (`#move`), not taken from the harness.
   4. The same seed gives identical `state()` JSON after 500 ticks; seeds 1 and 2 give different brains.
@@ -364,6 +368,10 @@ cannot merge until it is green.
 | 2026-11-09 | — | Phase 1 planned: T-101 to T-103 written out with criteria, verification and commits; Phase 1 gate added; ADR-0010 proposed (exact comparison of golden trajectories). Research: ECMA-262 §21.3.2 and §6.1.6.1; Node 22 and 24 use V8's fdlibm port for `sin`, `cos`, `atan2`; V8 main moved to LLVM libm in May 2026 | ADR-0010 in `docs/DECISIONS.md`; planning pull request awaiting owner approval |
 | 2026-11-14 | — | `lint and test` is a required check on `main` through the `protect-main` ruleset | Owner statement; ruleset is a GitHub setting, not stored in the repo |
 | 2026-11-14 | T-101 | Owner check passed: the owner read `docs/baseline-walkthrough.md` and can explain the frame loop with it. Task set to `done` | Owner confirmation |
+| 2026-11-14 | T-102 | Headless harness added (`tests/helpers/headless.js`, `tests/headless.test.js`); `src/` untouched. Verifier PASS on iteration 2 (iteration 1 failed criterion 8: five timestamp mutants, `damaged` always false and `window.innerHeight` survived; three tests added). Reviewer APPROVE after iteration 3 (the first review required a `NOTICE.md` rewording: the JavaScript form's licence had been overclaimed) | `npm run check` passed 10 runs in a row (104 tests, run by the verifier and again after the last edits); 39 mutations in scratch copies, all killed except one equivalent (swapping `network.js` and `sensor.js`, which only declare classes and functions); `src/` hashes equal the table below |
+| 2026-11-14 | T-102 | Owner decision: tick 0 means "after load". `main.js:34` calls `animate()` once while it loads, so traffic cars start at `y` less 0.15 with speed 0.15 and every `step(n)` is the (n+1)th update; criterion 2 reworded. The Phase 2 runner and the T-103 golden files must reproduce "initial state plus one load-time update" (ADR-0010). The harness also exposes the test hooks `canvases` (owner-approved) and `brains()` (added to check criterion 5, which needs every car's brain) | Criterion 2 and the "Test hooks" bullet on the T-102 card |
+| 2026-11-14 | T-102 | Timing for criterion 7, no threshold: 1,000 ticks took 3,986 ms in the verifier's run and 4,276 ms in a first probe (Node 24.12, Windows 11); the 100 AI cars and 7 traffic cars are updated every tick | `console.info` line of the timing test |
+| 2026-11-14 | T-102 | Criterion 9 is only partly met: the original C Mulberry32 is CC0 1.0 (Tommy Ettinger's gist, checked 2026-11-14) and bryc's notes are headed "Public domain", but the licence of the StackOverflow-posted JavaScript form could not be checked (site unreachable). `NOTICE.md` says so. Owner to accept this, or to ask for the function to be rewritten from the C original | `NOTICE.md`; researcher report |
 
 ### Baseline hash table (T-001, upstream commit `8b87236`)
 

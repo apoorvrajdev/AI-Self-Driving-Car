@@ -45,8 +45,8 @@ the smallest `y`, damaged or not, and `save()` stores its brain.
 - Physics advances per rendered frame, not per unit of time; speeds are in pixels per frame.
 - `Math.random` is unseeded, so runs cannot be reproduced.
 - Simulation and rendering are fused; nothing can run headless or faster than real time.
-- Global classes, no modules. Only `utils.js` and `network.js` have characterization tests; the rest of `src/` is
-  untested.
+- Global classes, no modules. `utils.js` and `network.js` have characterization tests, and the whole baseline runs
+  headless through `tests/helpers/headless.js` (T-102); the other files are covered only through that harness.
 - One straight road; traffic drives straight at constant speed; no lights, junctions or pedestrians.
 - Saved brains break when the network shape changes.
 
