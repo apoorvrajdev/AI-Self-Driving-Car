@@ -24,6 +24,17 @@ copyright line for later contributions in [LICENSE](LICENSE).
 
 | Component | Version | Licence | Used for |
 | --- | --- | --- | --- |
-| None beyond the imported baseline | — | — | — |
+| Mulberry32 pseudo-random number generator (Tommy Ettinger, 2017) | n/a (inline, 10 lines) | CC0 1.0 for the original C algorithm; licence of the JavaScript form not verified (see note below) | Seeded random numbers in tests (`makeSeededRandom` in `tests/helpers/loadLegacy.js`) |
+
+Mulberry32: the algorithm and constants are by Tommy Ettinger (2017). The original C implementation dedicates
+them to the public domain under CC0 1.0 (https://gist.github.com/tommyettinger/46a874533244883189143505d203312c,
+checked 2026-11-14). The JavaScript function in `tests/helpers/loadLegacy.js` has the same constants and
+operations as the widely circulated JavaScript port, with the state kept unsigned. That port is documented in
+bryc's notes, which are headed "Public domain"
+(https://github.com/bryc/code/blob/master/jshash/PRNGs.md, checked 2026-11-14), and is commonly found in a
+StackOverflow answer whose own licence could not be checked (the site was not reachable when this was
+researched). The licence of the JavaScript form as posted is therefore not verified. The function is ten lines
+and the algorithm is fixed by Ettinger's public-domain definition. If this matters, the function can be rewritten
+from the C original. The generator only seeds tests and is not suitable for security purposes.
 
 Development dependencies are added with their licences when they are introduced.
