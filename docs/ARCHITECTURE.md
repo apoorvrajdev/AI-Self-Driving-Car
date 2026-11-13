@@ -1,6 +1,6 @@
 # Architecture
 
-**Status:** Phase 0 — foundation. The baseline is imported into `src/` unchanged (task T-001).
+**Status:** Phase 1 — understand and measure the baseline. `src/` still holds the original code unchanged (task T-001).
 This document describes the original design, the target design, and the conventions every change follows.
 Decisions behind it are recorded in [DECISIONS.md](DECISIONS.md); work in progress is in [TASKS.md](TASKS.md).
 
@@ -15,35 +15,38 @@ scenarios.
 
 ## 2. Baseline (original design)
 
-Source: folder `9. Fine-tuning` of the original repository, about 725 lines of dependency-free JavaScript.
+Source: folder `9. Fine-tuning` of the original repository, about 730 lines of dependency-free JavaScript.
 Classic `<script>` files share global classes; everything runs inside one `requestAnimationFrame` loop.
+A line-by-line tour is in [baseline-walkthrough.md](baseline-walkthrough.md).
 
 | File | Responsibility | Notes |
 | --- | --- | --- |
-| `main.js` | Creates the road, 100 AI cars and 7 traffic cars; runs the frame loop; picks the best car; save/discard | Best car = smallest `y` (furthest up the road). Brain stored in `localStorage` |
-| `car.js` | Car state, movement, collision polygon, damage, drawing | Arcade physics per frame: accel 0.2, friction 0.05, max speed 3, turn 0.03 rad. Damaged cars freeze |
-| `controls.js` | Four booleans: forward, left, right, reverse | Sources: `KEYS`, `DUMMY` (always forward), `AI` (network outputs) |
+| `main.js` | Creates the road, 100 AI cars and 7 traffic cars; runs the frame loop; picks the best car; save/discard | Best car = smallest `y` (furthest up the road) among all cars, damaged ones included. Brain stored in `localStorage` |
+| `car.js` | Car state, movement, collision polygon, damage, drawing | Arcade physics per frame: accel 0.2, friction 0.05, max speed 3 (traffic 2), turn 0.03 rad. A damaged car stops moving, but its sensor and network keep running |
+| `controls.js` | Four booleans: forward, left, right, reverse | Handles `KEYS` (never used by `main.js`) and `DUMMY` (always forward); AI cars get their flags from the network in `car.js` |
 | `road.js` | Straight road, 3 lanes, two border segments | `getLaneCenter(i)`; borders span ±1,000,000 px |
-| `sensor.js` | 5 rays, 150 px long, spread over 90° | Reading per ray = nearest hit; network input = `1 − offset` |
+| `sensor.js` | 5 rays, 150 px long, spread over 90° | Reading per ray = nearest hit; network input = `1 − offset`, or 0 when nothing is hit |
 | `utils.js` | `lerp`, segment intersection, polygon intersection, colours | Brute-force collision over all edges |
 | `network.js` | Feed-forward network `[5, 6, 4]` and `mutate()` | Step activation: output 1 when weighted sum > bias, else 0 |
 | `visualizer.js` | Draws the best car's network with live activations | Teaching aid; kept |
 
 **Per-frame loop (`main.js → animate`)**
 
-1. Update traffic cars (road borders ignored, no traffic–traffic interaction).
-2. Update every AI car: move → rebuild polygon → collision check → cast rays → network forward → set controls.
+1. Update traffic cars (road borders passed, empty traffic list: no traffic–traffic interaction).
+2. Update every AI car. While undamaged: move → rebuild polygon → collision check. Always: cast rays → network forward → set controls.
 3. Select the best car, translate the camera to it, draw road, traffic and cars, draw the network.
 
 **Learning** is manual: the owner saves the best brain; on reload car 0 keeps it and the other 99 are copies
-moved 10% towards random values (`mutate(brain, 0.1)`). Fitness is distance travelled.
+moved 10% towards random values (`mutate(brain, 0.1)`). There is no fitness function: the best car is the one with
+the smallest `y`, damaged or not, and `save()` stores its brain.
 
 **Known limitations**
 
 - Physics advances per rendered frame, not per unit of time; speeds are in pixels per frame.
 - `Math.random` is unseeded, so runs cannot be reproduced.
 - Simulation and rendering are fused; nothing can run headless or faster than real time.
-- Global classes, no modules, no tests.
+- Global classes, no modules. Only `utils.js` and `network.js` have characterization tests; the rest of `src/` is
+  untested.
 - One straight road; traffic drives straight at constant speed; no lights, junctions or pedestrians.
 - Saved brains break when the network shape changes.
 

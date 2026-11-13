@@ -32,7 +32,7 @@ criteria and the log are in [docs/TASKS.md](docs/TASKS.md).
 | Phase | Scope | State |
 | --- | --- | --- |
 | 0 | Dev server, lint, characterization tests, commit-guard tests, CI, README and setup guide (T-000 to T-006) | Done |
-| 1 | A written walkthrough of the baseline (T-101), a headless run of the unmodified code (T-102), recorded reference runs (T-103) | T-101 written, awaiting owner review; T-102 and T-103 planned |
+| 1 | A written walkthrough of the baseline (T-101), a headless run of the unmodified code (T-102), recorded reference runs (T-103) | T-101 done; T-102 and T-103 planned |
 | 2 | ES modules, simulation and rendering split, fixed time step, seeded RNG, golden-trajectory tests | Planned |
 | 3 | Road graph, vehicle model, traffic lights, traffic and pedestrians, scenario files | Planned |
 | 4 | Parallel headless evolution, imitation learning, ONNX in the browser | Planned |
@@ -117,6 +117,7 @@ LICENSE  NOTICE.md      licence and third-party credits
 ## Documentation
 
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): the original design, the target design and the conventions.
+- [docs/baseline-walkthrough.md](docs/baseline-walkthrough.md): a plain-language tour of the original code and its frame loop.
 - [docs/DECISIONS.md](docs/DECISIONS.md): why things are the way they are.
 - [docs/TASKS.md](docs/TASKS.md): the task board, acceptance criteria and log.
 - [docs/setup.md](docs/setup.md): prerequisites, commands and enabling the hooks.

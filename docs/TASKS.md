@@ -17,7 +17,7 @@ restructure must reproduce (ADR-0008, ADR-0010). `src/` stays byte-identical thr
 
 **Gate (owner signs off):**
 
-- [ ] `docs/baseline-walkthrough.md` is read by the owner, who can explain the frame loop with it
+- [x] `docs/baseline-walkthrough.md` is read by the owner, who can explain the frame loop with it (2026-11-14)
 - [ ] The headless harness runs the unmodified baseline; `src/` hashes still equal the T-001 table
 - [ ] Golden fixtures are recorded, and the replay test is green locally (Windows, Node 24) and in CI (Linux,
       Node 22)
@@ -37,8 +37,11 @@ restructure must reproduce (ADR-0008, ADR-0010). `src/` stays byte-identical thr
 
 ## Board
 
-Phase 0 gate: signed by the owner on 2026-11-09. Phase 1 is planned (T-101 to T-103); T-101 and T-102 can
-start in either order, T-103 needs T-102.
+Phase 0 gate: signed by the owner on 2026-11-09. Phase 1 is current (T-101 to T-103); T-101 is done, T-102 is
+next, and T-103 needs T-102.
+
+`main` is protected by the `protect-main` ruleset: `lint and test` is a required check, so a pull request
+cannot merge until it is green.
 
 | ID | Title | Phase | Status | Depends on |
 | --- | --- | --- | --- | --- |
@@ -49,7 +52,7 @@ start in either order, T-103 needs T-102.
 | T-004 | Tests for the commit guards | 0 | done | T-002 |
 | T-005 | Continuous integration | 0 | done | T-003, T-004 |
 | T-006 | README and setup guide | 0 | done | T-002 |
-| T-101 | Baseline walkthrough document | 1 | todo | T-001 |
+| T-101 | Baseline walkthrough document | 1 | done | T-001 |
 | T-102 | Headless harness for the unmodified baseline | 1 | todo | T-003 |
 | T-103 | Baseline metrics and golden trajectories | 1 | todo | T-102 |
 
@@ -194,7 +197,7 @@ start in either order, T-103 needs T-102.
 
 ### T-101 — Baseline walkthrough document
 
-- **Status:** todo · **Phase 1**
+- **Status:** done (2026-11-14) · **Phase 1**
 - **Goal:** `docs/baseline-walkthrough.md` explains each baseline file and the frame loop in plain language,
   with `path:line` references, so the owner can explain every part in an interview.
 - **Context:** `src/*.js`, `src/index.html`, ARCHITECTURE §2 and §6, the T-003 and T-004 quirks in the Log,
@@ -218,6 +221,7 @@ start in either order, T-103 needs T-102.
   3. No statement contradicts the code or a characterization test. Each numeric constant quoted (speeds,
      ray count, network shape, mutation amount) matches the source.
   4. The owner reads the document and confirms they can explain the frame loop with it (OWNER-CHECK).
+     Confirmed by the owner on 2026-11-14.
 - **Verification:** verifier reference check (criterion 2) plus a constants table checked against `src/`;
   reviewer reads for accuracy and plain language; `npm run check` green.
 - **Branch and commits:** `docs/t-101-baseline-walkthrough`; `docs(baseline): add baseline walkthrough`,
@@ -358,6 +362,8 @@ start in either order, T-103 needs T-102.
 | 2026-11-09 | — | ADR-0007 and ADR-0008 accepted by the owner; ADR-0008 given a note to revisit it at T-103 if recording a baseline run proves impractical | `docs/DECISIONS.md` |
 | 2026-11-09 | — | Phase 0 gate signed by the owner: all five gate boxes ticked | Gate list and board note at the top of this file |
 | 2026-11-09 | — | Phase 1 planned: T-101 to T-103 written out with criteria, verification and commits; Phase 1 gate added; ADR-0010 proposed (exact comparison of golden trajectories). Research: ECMA-262 §21.3.2 and §6.1.6.1; Node 22 and 24 use V8's fdlibm port for `sin`, `cos`, `atan2`; V8 main moved to LLVM libm in May 2026 | ADR-0010 in `docs/DECISIONS.md`; planning pull request awaiting owner approval |
+| 2026-11-14 | — | `lint and test` is a required check on `main` through the `protect-main` ruleset | Owner statement; ruleset is a GitHub setting, not stored in the repo |
+| 2026-11-14 | T-101 | Owner check passed: the owner read `docs/baseline-walkthrough.md` and can explain the frame loop with it. Task set to `done` | Owner confirmation |
 
 ### Baseline hash table (T-001, upstream commit `8b87236`)
 
