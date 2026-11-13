@@ -47,6 +47,8 @@ it is served; the file itself is not changed.
 
 CI runs `npm ci`, `npm run lint` and `npm test` on every pull request and on every push to `main`.
 
+On Windows, run Vitest from an uppercase-drive path (`D:\...`); a lowercase `d:\...` working directory gives "reading 'config'" errors.
+
 ## Enable the commit hooks
 
 The hooks in `.githooks/` check that the commit author and committer match one email address, reject
