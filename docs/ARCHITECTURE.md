@@ -1,6 +1,6 @@
 # Architecture
 
-**Status:** Phase 0 — foundation. The baseline is imported into `src/` unchanged (task T-001).
+**Status:** Phase 1 — understand and measure the baseline. `src/` still holds the original code unchanged (task T-001).
 This document describes the original design, the target design, and the conventions every change follows.
 Decisions behind it are recorded in [DECISIONS.md](DECISIONS.md); work in progress is in [TASKS.md](TASKS.md).
 
