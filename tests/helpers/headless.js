@@ -126,8 +126,7 @@ export function createBaselineSim({ seed = 1, savedBrain, srcDir } = {}) {
   };
   const context = vm.createContext(sandbox);
   vm.runInContext('Math.random = __random;', context);
-  const srcBase =
-    srcDir === undefined ? BASELINE_DIR : pathToFileURL(resolve(srcDir) + sep);
+  const srcBase = srcDir === undefined ? BASELINE_DIR : pathToFileURL(resolve(srcDir) + sep);
   for (const file of BASELINE_SCRIPTS) {
     const source = readScript(new URL(file, srcBase));
     new vm.Script(source, { filename: file }).runInContext(context);
