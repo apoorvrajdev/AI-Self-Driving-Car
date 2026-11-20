@@ -4,17 +4,29 @@ import vm from 'node:vm';
 
 /**
  * Mulberry32: a small seeded generator returning numbers in [0, 1).
+ *
+ * A line-by-line translation of the C original by Tommy Ettinger (2017, CC0 1.0), mulberry32.c:
+ * https://gist.github.com/tommyettinger/46a874533244883189143505d203312c
+ *
+ *     uint32_t next(void) {
+ *       uint32_t z = (x += 0x6D2B79F5UL);
+ *       z = (z ^ (z >> 15)) * (z | 1UL);
+ *       z ^= z + (z ^ (z >> 7)) * (z | 61UL);
+ *       return z ^ (z >> 14);
+ *     }
+ *
+ * C unsigned arithmetic wraps modulo 2^32: `>>> 0` does that for sums and Math.imul for products.
  * @param {number} seed
  * @returns {() => number}
  */
 export function makeSeededRandom(seed) {
-  let state = seed >>> 0;
+  let x = seed >>> 0;
   return () => {
-    state = (state + 0x6d2b79f5) >>> 0;
-    let t = state;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    x = (x + 0x6d2b79f5) >>> 0;
+    let z = x;
+    z = Math.imul(z ^ (z >>> 15), z | 1);
+    z = (z ^ (z + Math.imul(z ^ (z >>> 7), z | 61))) >>> 0;
+    return ((z ^ (z >>> 14)) >>> 0) / 4294967296;
   };
 }
 
