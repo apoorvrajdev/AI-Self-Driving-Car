@@ -4,8 +4,17 @@ import globals from 'globals';
 
 export default [
   {
-    // The baseline in src/ is linted from Phase 2 onwards.
-    ignores: ['src/**', 'node_modules/**', 'dist/**', 'coverage/**', '.vite/**', 'reference/**'],
+    // baseline/ is the frozen original (classic scripts, one file in UTF-16) and is never linted.
+    // src/ is linted from Phase 2 onwards.
+    ignores: [
+      'baseline/**',
+      'src/**',
+      'node_modules/**',
+      'dist/**',
+      'coverage/**',
+      '.vite/**',
+      'reference/**',
+    ],
   },
   js.configs.recommended,
   {
