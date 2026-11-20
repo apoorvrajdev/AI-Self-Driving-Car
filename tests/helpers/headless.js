@@ -56,7 +56,7 @@ const CONTEXT_METHODS = [
  * @param {any} value
  * @returns {any}
  */
-function toPlain(value) {
+export function toPlain(value) {
   if (Array.isArray(value)) return Array.from(value, toPlain);
   if (value !== null && typeof value === 'object') {
     return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, toPlain(item)]));
@@ -65,17 +65,11 @@ function toPlain(value) {
 }
 
 /**
- * Runs the unmodified baseline in Node. All eight scripts run in one fresh vm context with stubbed canvas,
- * image, localStorage and requestAnimationFrame, and with Math.random replaced by a seeded generator inside
- * that context only, so the host is never affected.
- *
- * Tick 0 means "after load": main.js itself calls animate() once while it loads, as a browser does, so every
- * car has been updated once before the first step.
- * `srcDir` loads the scripts from another directory (a scratch copy of baseline/ for mutation checks) instead
- * of the repository's baseline/.
- * @param {{ seed?: number, savedBrain?: object, srcDir?: string }} [options]
+ * The page's host objects that both harnesses stub the same way: a localStorage that keeps its values in a
+ * Map, and canvas elements whose 2D context accepts every call the page makes and does nothing.
+ * @param {object} [savedBrain] stored under 'bestBrain' before the page loads
  */
-export function createBaselineSim({ seed = 1, savedBrain, srcDir } = {}) {
+export function createHostStubs(savedBrain) {
   /** @type {Map<string, string>} */
   const items = new Map();
   const storage = {
@@ -109,6 +103,22 @@ export function createBaselineSim({ seed = 1, savedBrain, srcDir } = {}) {
     canvases.push(canvas);
     return canvas;
   };
+  return { storage, canvases, createCanvas };
+}
+
+/**
+ * Runs the unmodified baseline in Node. All eight scripts run in one fresh vm context with stubbed canvas,
+ * image, localStorage and requestAnimationFrame, and with Math.random replaced by a seeded generator inside
+ * that context only, so the host is never affected.
+ *
+ * Tick 0 means "after load": main.js itself calls animate() once while it loads, as a browser does, so every
+ * car has been updated once before the first step.
+ * `srcDir` loads the scripts from another directory (a scratch copy of baseline/ for mutation checks) instead
+ * of the repository's baseline/.
+ * @param {{ seed?: number, savedBrain?: object, srcDir?: string }} [options]
+ */
+export function createBaselineSim({ seed = 1, savedBrain, srcDir } = {}) {
+  const { storage, canvases, createCanvas } = createHostStubs(savedBrain);
 
   /** @type {((time?: number) => void) | undefined} */
   let animateCallback;

@@ -3,9 +3,9 @@ import { readFileSync } from 'node:fs';
 import { defineConfig } from 'vite';
 
 /**
- * The original visualizer.js (in baseline/, and in src/ until it is restructured) is UTF-16LE with a
- * byte-order mark. Browsers decode that from a file:// URL, but Vite reads source files as UTF-8 and fails on
- * it. This plugin decodes such files when they are served; the files on disk are not changed.
+ * The original visualizer.js in baseline/ is UTF-16LE with a byte-order mark. Browsers decode that from a
+ * file:// URL, but Vite reads source files as UTF-8 and fails on it. This plugin decodes such files when they
+ * are served; the files on disk are not changed. Only baseline/ needs it: src/visualizer.js is UTF-8.
  * @returns {import('vite').Plugin}
  */
 function utf16LeSources() {

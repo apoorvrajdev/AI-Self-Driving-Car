@@ -40,14 +40,26 @@ export function loadFixture(name, dir = fixtureDir()) {
 }
 
 /**
- * Runs one scenario for TICKS ticks and records it. Tick 0 is the state after load (see headless.js), so
- * `ticks[n]` is the state after n steps. state() only reads, so taking snapshots does not change the run.
+ * Runs one scenario against the baseline for TICKS ticks and records it (see recordScenario).
  * @param {{ name: string, seed: number }} scenario
  * @param {{ savedBrain?: object, srcDir?: string }} [options]
  * @returns {{ record: any, stepMs: number }}
  */
 export function runScenario({ name, seed }, { savedBrain, srcDir } = {}) {
   const sim = createBaselineSim({ seed, savedBrain, srcDir });
+  return recordScenario(sim, { name, seed }, savedBrain);
+}
+
+/**
+ * Steps a simulation for TICKS ticks and records it. Tick 0 is the state after load (see headless.js), so
+ * `ticks[n]` is the state after n steps. state() only reads, so taking snapshots does not change the run.
+ * The simulation is a baseline sim or a module sim: both offer step() and state().
+ * @param {{ step: (n: number) => void, state: () => any }} sim
+ * @param {{ name: string, seed: number }} scenario
+ * @param {object} [savedBrain] the brain the sim was started from, kept in the record's meta
+ * @returns {{ record: any, stepMs: number }}
+ */
+export function recordScenario(sim, { name, seed }, savedBrain) {
   /** @param {any} s */
   const row = (s) => {
     const best = s.cars[s.bestIndex];

@@ -12,28 +12,54 @@ import {
   firstMismatch,
   fixtureDir,
   loadFixture,
+  recordScenario,
   runScenario,
 } from './helpers/golden.js';
+import { createModuleSim } from './helpers/moduleSim.js';
 
 const SLOW_MS = 120_000;
-// Test-only hook: run the replay against a scratch copy of baseline/ (mutation checks). Unset in normal runs.
+// Test-only hook: run the baseline replay against a scratch copy of baseline/ (mutation checks). Unset in
+// normal runs. The module replay has its own hook, MODULES_SRC_DIR, read in helpers/moduleSim.js.
 const srcDir = process.env.GOLDEN_SRC_DIR || undefined;
 
-describe('golden trajectories', () => {
-  it.each(SCENARIOS)(
-    '$name: replaying $name for 1,000 ticks reproduces every recorded number exactly',
-    ({ name, seed }) => {
-      const fixture = loadFixture(name);
-      const { record } = runScenario(
-        { name, seed },
-        { savedBrain: fixture.meta.savedBrain, srcDir },
-      );
-      assertFinite(record);
-      const mismatch = firstMismatch(name, fixture, record);
-      if (mismatch) expect.fail(mismatch.message);
+/**
+ * The two implementations that must reproduce every fixture: the frozen baseline (classic scripts in a vm)
+ * and the src/ modules (through the bridge, which a later task removes).
+ * @type {{ label: string, replay: (scenario: { name: string, seed: number }, savedBrain?: object) => Promise<{ record: any }> }[]}
+ */
+const IMPLEMENTATIONS = [
+  {
+    label: 'baseline (vm)',
+    replay: async ({ name, seed }, savedBrain) =>
+      runScenario({ name, seed }, { savedBrain, srcDir }),
+  },
+  {
+    label: 'src modules',
+    replay: async (scenario, savedBrain) => {
+      const sim = await createModuleSim({ seed: scenario.seed, savedBrain });
+      try {
+        return recordScenario(sim, scenario, savedBrain);
+      } finally {
+        sim.dispose();
+      }
     },
-    SLOW_MS,
-  );
+  },
+];
+
+describe('golden trajectories', () => {
+  describe.each(IMPLEMENTATIONS)('$label', ({ replay }) => {
+    it.each(SCENARIOS)(
+      '$name: replaying $name for 1,000 ticks reproduces every recorded number exactly',
+      async ({ name, seed }) => {
+        const fixture = loadFixture(name);
+        const { record } = await replay({ name, seed }, fixture.meta.savedBrain);
+        assertFinite(record);
+        const mismatch = firstMismatch(name, fixture, record);
+        if (mismatch) expect.fail(mismatch.message);
+      },
+      SLOW_MS,
+    );
+  });
 
   it.each(SCENARIOS)('$name: the fixture has the expected format and metrics', ({ name, seed }) => {
     const { meta, columns, ticks, final, metrics } = loadFixture(name);
@@ -71,7 +97,7 @@ describe('golden trajectories', () => {
     expect(bytes).toBeLessThan(1_000_000);
   });
 
-  it.each(['../golden.test.js', './golden.js', './headless.js'])(
+  it.each(['../golden.test.js', './golden.js', './headless.js', './moduleSim.js'])(
     'neither the replay test nor its helpers write files (%s): only the recorder does',
     (file) => {
       const source = readFileSync(new URL(file, new URL('./helpers/', import.meta.url)), 'utf8');

@@ -55,6 +55,7 @@ output; `tests/baseline-metrics.test.js` fails if the table and the fixtures dis
 above (the number of ticks that change, the file size, the Node version) are not checked by a test: refresh them
 by hand with the table.
 
-Two environment variables exist for checking the checker, and are unset in normal runs and in CI:
-`GOLDEN_SRC_DIR` replays against a scratch copy of `baseline/` (mutation checks) and `GOLDEN_FIXTURE_DIR` reads
-fixtures from another directory (mismatch-reporting checks).
+Three environment variables exist for checking the checker, and are unset in normal runs and in CI:
+`GOLDEN_SRC_DIR` replays against a scratch copy of `baseline/` (mutation checks), `MODULES_SRC_DIR` runs the
+module replay and the module characterization cases against a scratch copy of `src/`, and `GOLDEN_FIXTURE_DIR`
+reads fixtures from another directory (mismatch-reporting checks).

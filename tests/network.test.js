@@ -1,9 +1,19 @@
 import { describe, expect, it } from 'vitest';
 import { loadLegacy, makeSeededRandom, makeSequenceRandom } from './helpers/loadLegacy.js';
+import { bindRandom, loadSrcModules } from './helpers/moduleSim.js';
 
 const files = ['utils.js', 'network.js'];
 const names = ['NeuralNetwork', 'Level'];
-const load = (random) => loadLegacy(files, names, { random });
+const srcModules = await loadSrcModules(files);
+
+/**
+ * The two implementations every case runs against: the frozen baseline (classic scripts in a vm) and the
+ * src/ modules. `load(random)` gives a handle whose Math.random is `random`, so each handle has its own draws.
+ */
+const IMPLEMENTATIONS = [
+  { label: 'baseline (vm)', load: (random) => loadLegacy(files, names, { random }) },
+  { label: 'src modules', load: (random) => bindRandom(srcModules, random) },
+];
 
 /** Weights and biases as plain JSON, so snapshots compare across the vm realm. */
 const snapshot = (net) =>
@@ -17,7 +27,7 @@ function handMadeNet(NeuralNetwork, weights, bias) {
   return net;
 }
 
-describe('NeuralNetwork construction', () => {
+describe.each(IMPLEMENTATIONS)('NeuralNetwork construction ($label)', ({ load }) => {
   it('NeuralNetwork([5,6,4]) has two levels with the right shapes', () => {
     const { NeuralNetwork } = load(makeSeededRandom(1));
     const net = new NeuralNetwork([5, 6, 4]);
@@ -78,7 +88,7 @@ describe('NeuralNetwork construction', () => {
   });
 });
 
-describe('NeuralNetwork.feedForward', () => {
+describe.each(IMPLEMENTATIONS)('NeuralNetwork.feedForward ($label)', ({ load }) => {
   it('returns 4 outputs, each exactly 0 or 1', () => {
     const { NeuralNetwork } = load(makeSeededRandom(3));
     const net = new NeuralNetwork([5, 6, 4]);
@@ -141,7 +151,7 @@ describe('NeuralNetwork.feedForward', () => {
   });
 });
 
-describe('NeuralNetwork.mutate', () => {
+describe.each(IMPLEMENTATIONS)('NeuralNetwork.mutate ($label)', ({ load }) => {
   it('mutate(net, 0) changes nothing', () => {
     const { NeuralNetwork } = load(makeSeededRandom(5));
     const net = new NeuralNetwork([5, 6, 4]);
