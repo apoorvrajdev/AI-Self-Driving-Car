@@ -102,6 +102,7 @@ Interface changes require an ADR.
 | --- | --- | --- |
 | `src/` | Simulation code (baseline files until Phase 2) | yes |
 | `tests/` | Unit, characterization and scenario tests | yes |
+| `tests/golden/` | Golden-trajectory fixtures recorded from the baseline, and their recorder (`npm run golden:record`) | yes |
 | `docs/` | Architecture, decisions, tasks, setup | yes |
 | `.githooks/` | Commit guards (identity, message, blocked files) | yes |
 | `.github/workflows/` | CI | yes |

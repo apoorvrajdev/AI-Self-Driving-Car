@@ -37,8 +37,8 @@ restructure must reproduce (ADR-0008, ADR-0010). `src/` stays byte-identical thr
 
 ## Board
 
-Phase 0 gate: signed by the owner on 2026-11-09. Phase 1 is current (T-101 to T-103); T-101 is done, T-102 is
-next, and T-103 needs T-102.
+Phase 0 gate: signed by the owner on 2026-11-09. Phase 1 is current (T-101 to T-103); T-101 to T-103 are
+done and the Phase 1 gate is next.
 
 `main` is protected by the `protect-main` ruleset: `lint and test` is a required check, so a pull request
 cannot merge until it is green.
@@ -54,7 +54,7 @@ cannot merge until it is green.
 | T-006 | README and setup guide | 0 | done | T-002 |
 | T-101 | Baseline walkthrough document | 1 | done | T-001 |
 | T-102 | Headless harness for the unmodified baseline | 1 | done | T-003 |
-| T-103 | Baseline metrics and golden trajectories | 1 | todo | T-102 |
+| T-103 | Baseline metrics and golden trajectories | 1 | done | T-102 |
 
 ---
 
@@ -290,7 +290,7 @@ cannot merge until it is green.
 
 ### T-103 — Baseline metrics and golden trajectories
 
-- **Status:** todo · **Phase 1**
+- **Status:** done · **Phase 1**
 - **Goal:** Record, for fixed seeds, the best car's distance, crash count and per-tick positions as JSON
   fixtures. These become the golden reference for the Phase 2 restructure (ADR-0008).
 - **Context:** `tests/helpers/headless.js` (T-102), ADR-0008 (including its revisit note), ADR-0010,
@@ -391,6 +391,10 @@ cannot merge until it is green.
 | 2026-11-14 | T-102 | Owner decision: tick 0 means "after load". `main.js:34` calls `animate()` once while it loads, so traffic cars start at `y` less 0.15 with speed 0.15 and every `step(n)` is the (n+1)th update; criterion 2 reworded. The Phase 2 runner and the T-103 golden files must reproduce "initial state plus one load-time update" (ADR-0010). The harness also exposes the test hooks `canvases` (owner-approved) and `brains()` (added to check criterion 5, which needs every car's brain) | Criterion 2 and the "Test hooks" bullet on the T-102 card |
 | 2026-11-14 | T-102 | Timing for criterion 7, no threshold: 1,000 ticks took 3,986 ms in the verifier's run and 4,276 ms in a first probe (Node 24.12, Windows 11); the 100 AI cars and 7 traffic cars are updated every tick | `console.info` line of the timing test |
 | 2026-11-14 | T-102 | Criterion 9 is only partly met: the original C Mulberry32 is CC0 1.0 (Tommy Ettinger's gist, checked 2026-11-14) and bryc's notes are headed "Public domain", but the licence of the StackOverflow-posted JavaScript form could not be checked (site unreachable). `NOTICE.md` says so. Owner accepted this as is on 2026-11-14, and asked that T-103 begin by rewriting the function from the C original (verified identical output) and then update `NOTICE.md`; the stale README test counts move to T-103's closing pull request | `NOTICE.md`; researcher report; T-103 card |
+| 2026-11-20 | T-103 | Delivered as two pull requests (owner decision): #14 (merge commit `3da626a`) rewrote `makeSeededRandom` from the CC0 `mulberry32.c` and updated `NOTICE.md`; #15 holds the recorder, fixtures, replay test, metrics document and README. Researcher source for the C original: gist `46a874533244883189143505d203312c`, header "Written in 2017 by Tommy Ettinger ... dedicated ... to the public domain worldwide" with the CC0 1.0 link, last content revision 2017-11-06, checked 2026-11-20. PR A: verifier PASS, reviewer APPROVE (three wording Minors fixed) | Old and new function compared value by value (6 seeds x 10,000 = 60,000 values, 0 mismatches) and both against a BigInt implementation of the C function (0 of 60,000); the pinned-digest test fails for 5 mutants (constant, `\| 61`, three shifts); #14 `lint and test` green |
+| 2026-11-20 | T-103 | Fixtures recorded with `npm run golden:record` on Node 24.12.0 (Windows): `seed-1` best distance 2042.95 px, 24 crashed, 76 surviving; `seed-2` 2087.1499999999996, 37, 63; `seed-3` 2053.3999999999996, 26, 74; `seed-4-gen2` 2083.249999999999, 13, 87; about 3.6 to 4.1 s per 1,000 ticks. The scenarios are not degenerate: the best car's row changes on 960, 998, 979 and 1,000 of 1,000 ticks. Criterion 2: the replay passed on Linux with Node 22.23.4 in CI, so the Windows/Node 24 fixtures match on both and the ADR-0010 assumption held. Verifier PASS, reviewer APPROVE (five Minors fixed in `da25fd3`) | `docs/baseline-metrics.md`; fixtures total 266,521 bytes; `npm run check` 148 tests (run 3 times in a row); CI run 44764311470 (8 files, 148 tests) |
+| 2026-11-20 | T-103 | Mismatch and mutation checks, all on scratch copies. Mismatch (one changed fixture value): per-tick `y` gives `seed-1: tick 500, best car (index 62), field y: ...`; final AI car `x` gives `tick 1000, AI car 3, field x`; traffic car `y` gives `traffic car 2, field y`; a brain weight gives `best brain, field levels[0].weights[2][1]`. Mutation (replay fails): `friction` 0.0500001 (all four, tick 1); ray count 6 (all four) and 4 (all four); `mutate` amount 0.11 at `src/main.js:19` (only `seed-4-gen2`, `tick 43, all AI cars, field crashedCars: expected 4 but got 7`). The unmutated control passes. One mutant survives: `>` to `>=` in `feedForward`, which differs only when a neuron sum equals its bias exactly, and that never happens in these runs (not proven equivalent in general) | Verifier scratch outputs; `src/` SHA-256 unchanged and equal to the T-001 table |
+| 2026-11-20 | T-103 | Decisions and scope: the replay test moved into the fixtures commit so every commit passes `npm run check` (the card had it one commit earlier); added beyond the card, with approval: `tests/helpers/golden.js`, `tests/golden-compare.test.js`, `tests/baseline-metrics.test.js`, an optional `srcDir` in `createBaselineSim`, the test-only variables `GOLDEN_SRC_DIR` and `GOLDEN_FIXTURE_DIR`, `tests/golden/*.json` in `.prettierignore`; one metrics table with a row per scenario; README lines 20, 24, 35, 81 to 82, 86, 95 to 98 and 106 corrected factually. ADR-0010 stays Proposed: the owner accepts it in a separate pull request now that CI confirmed the match | `docs/baseline-metrics.md`; `README.md` |
 
 ### Baseline hash table (T-001, upstream commit `8b87236`)
 
