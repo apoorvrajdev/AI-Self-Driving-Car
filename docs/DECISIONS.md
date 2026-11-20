@@ -147,12 +147,11 @@ Accepted decisions change only through a new ADR.
   - Node 22 (V8 12.4) and Node 24 (V8 13.6) compute `sin`, `cos` and `atan2` with V8's own fdlibm port
     (`src/base/ieee754.cc`), not the platform's maths library. The 2-argument `Math.hypot` used by the baseline
     reduces to the same operations in both.
-  - V8's main branch moved `sin`, `cos` and `atan2` to LLVM's libm in May 2026, in two commits (checked in the
-    V8 repository on 2026-11-20): [`7c1d2c3`](https://chromium.googlesource.com/v8/v8/+/7c1d2c3724000b4895ef95f75670ca0b6f3ebe4d)
-    for `sin` and `cos` (committed 2026-05-12, at first only for builds with `v8_use_libm_trig_functions` off) and
-    [`43f04a5`](https://chromium.googlesource.com/v8/v8/+/43f04a52f24dab40d3d9ff7aa4849e70a0d10225) for `atan`
-    and `atan2` (committed 2026-05-22). A Node major will inherit that change when it picks up that V8 version,
-    and results may differ in the last bit.
+  - V8's main branch has begun moving `sin`, `cos` and `atan2` to LLVM's libm. Two commits from May 2026 exist
+    in the V8 repository (checked there on 2026-11-20): [`7c1d2c3`][v8-7c1d2c3] for `sin` and `cos` (committed
+    2026-05-12, at first only for builds with `v8_use_libm_trig_functions` off) and [`43f04a5`][v8-43f04a5] for
+    `atan` and `atan2` (committed 2026-05-22). A later Node major may pick up that change when it takes a V8
+    version that contains it, and results may then differ in the last bit.
   - The simulation is chaotic: one bit of difference can flip a collision or sensor comparison, after which
     the runs diverge instead of drifting, so no fixed tolerance separates "equal" from "different".
 - **Options:** (a) exact equality of every recorded number; (b) a fixed numeric tolerance; (c) compare summary
@@ -176,14 +175,17 @@ Accepted decisions change only through a new ADR.
     it on 2026-11-20 and it held, so ADR-0008 stays as accepted and Phase 2 can start.
 - **Revisit:** The accepted decision rests on V8 shipping the same `sin`, `cos` and `atan2` on every platform
   and Node major used so far, which is true of its fdlibm port (Node 22 and 24) but not guaranteed later: V8's
-  main branch moved these functions to LLVM's libm in May 2026, and a Node major will inherit that change when
-  it picks up that V8 version.
+  main branch began moving these functions to LLVM's libm in May 2026, and a later Node major may inherit that
+  change when it picks up a V8 version that contains it.
   - A Node major change alone (CI or the local toolchain) needs no new ADR: it follows the handling in the
     decision above. If the golden replay stops matching, the goldens are re-recorded in that task, with a Log
     entry naming both Node versions.
   - Revisit this ADR, through a new ADR, if re-recording becomes frequent, or if one platform or Node major
     cannot reproduce another's fixtures. Exact comparison would then no longer be practical, and a bounded or
     metric-level comparison (options (b) and (c)) would need an ADR of its own.
+
+[v8-7c1d2c3]: https://chromium.googlesource.com/v8/v8/+/7c1d2c3724000b4895ef95f75670ca0b6f3ebe4d
+[v8-43f04a5]: https://chromium.googlesource.com/v8/v8/+/43f04a52f24dab40d3d9ff7aa4849e70a0d10225
 
 ---
 
