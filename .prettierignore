@@ -1,5 +1,4 @@
 baseline/
-src/
 .githooks/
 package-lock.json
 node_modules/
