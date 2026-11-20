@@ -17,7 +17,7 @@ reproduced or compared. This project adds tests and determinism before it adds f
 
 | | |
 | --- | --- |
-| **Today** | The original simulation in `src/` (11 files, byte-identical to upstream), served by Vite, with 148 passing tests |
+| **Today** | The original simulation, kept byte-identical to upstream in `baseline/` (11 files) and still equal to it in `src/`, served by Vite, with 149 passing tests |
 | **Planned** | Seeded, fixed-step, headless simulation; a road graph and traffic; swappable drivers; a safety supervisor; scenario metrics |
 | **Toolchain** | Node.js 20+, Vite, Vitest, ESLint, Prettier, all exact-pinned dev dependencies; the simulation itself uses no libraries |
 | **Delivery** | Pull requests only, merged with a merge commit; `lint and test` is a required check on `main` |
@@ -26,8 +26,9 @@ reproduced or compared. This project adds tests and determinism before it adds f
 ## Status
 
 Phase 0 (foundation) was signed off on 2026-11-09. Phase 1 (understand and measure the baseline) is in progress.
-`src/` holds the original simulation, unchanged, and nothing in it has been refactored yet. Tasks, acceptance
-criteria and the log are in [docs/TASKS.md](docs/TASKS.md).
+`baseline/` holds the original simulation, frozen and never edited. `src/` is still the same code and has not been
+refactored yet; Phase 2 restructures it. Tasks, acceptance criteria and the log are in
+[docs/TASKS.md](docs/TASKS.md).
 
 | Phase | Scope | State |
 | --- | --- | --- |
@@ -53,6 +54,7 @@ Open <http://localhost:5173> (the address Vite prints). Other commands:
 | Command | What it does |
 | --- | --- |
 | `npm run dev` | Serves the simulation from `src/` with Vite |
+| `npm run dev:baseline` | Serves the frozen original from `baseline/` with Vite |
 | `npm test` | Runs the test suite once (Vitest) |
 | `npm run lint` | Lints the project (ESLint) |
 | `npm run check` | Lint, then tests: the same steps CI runs |
@@ -77,8 +79,8 @@ flowchart LR
 
 | Practice | Evidence |
 | --- | --- |
-| The original code is kept byte-identical | SHA-256 table recorded at T-001 in [docs/TASKS.md](docs/TASKS.md); `src/**` is marked `-text` in [.gitattributes](.gitattributes) |
-| Behaviour is pinned before any change | 32 characterization tests: [utils](tests/utils.test.js) (14) and [network](tests/network.test.js) (18); 20 tests of a [headless harness](tests/headless.test.js) that runs the unmodified code. Quirks are recorded, not fixed |
+| The original code is kept byte-identical | SHA-256 table recorded at T-001 in [docs/TASKS.md](docs/TASKS.md) and checked on `baseline/` by [baseline-hashes](tests/baseline-hashes.test.js); `baseline/**` is marked `-text` in [.gitattributes](.gitattributes) |
+| Behaviour is pinned before any change | 32 characterization tests: [utils](tests/utils.test.js) (14) and [network](tests/network.test.js) (18); 19 tests of a [headless harness](tests/headless.test.js) and 2 of the [baseline hashes](tests/baseline-hashes.test.js), all running the unmodified code in `baseline/`. Quirks are recorded, not fixed |
 | Reference runs of the original are recorded | Four golden runs in [tests/golden/](tests/golden), replayed and compared number by number: [golden](tests/golden.test.js) (13 tests), [golden-compare](tests/golden-compare.test.js) (19), [baseline-metrics](tests/baseline-metrics.test.js) (5), [mulberry32](tests/mulberry32.test.js) (7). Numbers: [docs/baseline-metrics.md](docs/baseline-metrics.md) |
 | The commit guards are tested | 52 tests in [tests/hooks.test.js](tests/hooks.test.js); the guards live in [.githooks/](.githooks) |
 | Test tasks need a mutation check | Mutations of the code and the hooks were applied in scratch copies; results are in the T-003 and T-004 rows of the log |
@@ -106,7 +108,8 @@ flowchart LR
 ## Project layout
 
 ```text
-src/                    simulation code (the original files, unchanged for now)
+baseline/               the 11 original files, frozen byte for byte (never edited)
+src/                    simulation code (still equal to baseline/ for now)
 tests/                  characterization, headless-harness, golden-trajectory and commit-guard tests; helpers for loading and running the legacy scripts; golden fixtures in tests/golden/
 docs/                   architecture, decisions, tasks, setup
 .githooks/              commit guards (see docs/setup.md)

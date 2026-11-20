@@ -1,6 +1,6 @@
 # Architecture
 
-**Status:** Phase 1 — understand and measure the baseline. `src/` still holds the original code unchanged (task T-001).
+**Status:** Phase 2 — restructure. `baseline/` holds the original code unchanged (task T-201); `src/` still equals it until T-202.
 This document describes the original design, the target design, and the conventions every change follows.
 Decisions behind it are recorded in [DECISIONS.md](DECISIONS.md); work in progress is in [TASKS.md](TASKS.md).
 
@@ -100,9 +100,10 @@ Interface changes require an ADR.
 
 | Path | Contents | Committed |
 | --- | --- | --- |
-| `src/` | Simulation code (baseline files until Phase 2) | yes |
-| `tests/` | Unit, characterization and scenario tests | yes |
-| `tests/golden/` | Golden-trajectory fixtures recorded from the baseline, and their recorder (`npm run golden:record`) | yes |
+| `baseline/` | Frozen, byte-identical copy of the 11 original files (ADR-0011); never edited, hash-checked by `tests/baseline-hashes.test.js`, served by `npm run dev:baseline` | yes |
+| `src/` | Simulation code (equal to `baseline/` until T-202 restructures it) | yes |
+| `tests/` | Unit, characterization and scenario tests; they read `baseline/` | yes |
+| `tests/golden/` | Golden-trajectory fixtures recorded from `baseline/`, and their recorder (`npm run golden:record`) | yes |
 | `docs/` | Architecture, decisions, tasks, setup | yes |
 | `.githooks/` | Commit guards (identity, message, blocked files) | yes |
 | `.github/workflows/` | CI | yes |
