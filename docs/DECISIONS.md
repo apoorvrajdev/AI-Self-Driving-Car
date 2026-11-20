@@ -136,7 +136,7 @@ Accepted decisions change only through a new ADR.
 
 ## ADR-0010
 
-**Golden trajectories: exact comparison, deliberate re-recording** · Proposed · 2026-11-09
+**Golden trajectories: exact comparison, deliberate re-recording** · Accepted · 2026-11-09
 
 - **Context:** T-103 records runs of the unmodified baseline that the Phase 2 restructure must reproduce
   (ADR-0008). Sources checked on 2026-11-09:
@@ -151,7 +151,9 @@ Accepted decisions change only through a new ADR.
     the runs diverge instead of drifting, so no fixed tolerance separates "equal" from "different".
 - **Options:** (a) exact equality of every recorded number; (b) a fixed numeric tolerance; (c) compare summary
   metrics only (distance, crash count).
-- **Decision (proposed):** (a).
+- **Decision:** (a). Accepted by the owner on 2026-11-20, after T-103 checked the assumption below: the
+  fixtures recorded on Windows with Node 24.12.0 replayed identically in CI on Linux with Node 22.23.4 (run
+  44764311470).
   - Fixtures are JSON. A JavaScript number written by `JSON.stringify` reads back as the same number. The sign
     of zero is not compared (JSON writes `-0` as `0`), and the recorder rejects `NaN` and infinities.
   - A mismatch reports the first tick, car and field that differ, not just "not equal".
@@ -164,8 +166,18 @@ Accepted decisions change only through a new ADR.
   - The strongest possible guard for the Phase 2 restructure: any change of behaviour fails a test.
   - Phase 2 must keep the baseline's order of arithmetic operations until the goldens are deliberately
     retired, because even a reordered sum can change the last bit.
-  - Equality between Windows with Node 24 (local) and Linux with Node 22 (CI) is an assumption, checked by
-    T-103. If it fails, this ADR and ADR-0008 are revisited before Phase 2 (the ADR-0008 revisit note).
+  - Equality between Windows with Node 24 (local) and Linux with Node 22 (CI) was an assumption. T-103 checked
+    it on 2026-11-20 and it held, so ADR-0008 stays as accepted and Phase 2 can start.
+- **Revisit:** The accepted decision rests on V8 shipping the same `sin`, `cos` and `atan2` on every platform
+  and Node major used so far, which is true of its fdlibm port (Node 22 and 24) but not guaranteed later: V8's
+  main branch moved these functions to LLVM's libm in May 2026, and a future Node major will ship that change.
+  Revisit this ADR (through a new ADR) when either happens:
+  - The pinned CI Node major, or the local toolchain, moves to a version whose V8 uses a different maths library
+    and the golden replay stops matching. Until then the handling in the decision applies: check the goldens in
+    that task and, if they change, re-record them there with a Log entry naming both Node versions.
+  - Re-recording becomes frequent, or one platform or Node major cannot reproduce another's fixtures. Exact
+    comparison would then no longer be practical, and a bounded or metric-level comparison (options (b) and
+    (c)) would need an ADR of its own.
 
 ---
 
