@@ -15,15 +15,15 @@ takes effect when the pull request merges).
 Explain the original simulation, run it headless and unchanged, and record reference runs that the Phase 2
 restructure must reproduce (ADR-0008, ADR-0010). `src/` stays byte-identical throughout.
 
-**Gate (owner signs off):**
+**Gate (owner signs off): signed by the owner on 2026-11-20**
 
 - [x] `docs/baseline-walkthrough.md` is read by the owner, who can explain the frame loop with it (2026-11-14)
-- [ ] The headless harness runs the unmodified baseline; `src/` hashes still equal the T-001 table
-- [ ] Golden fixtures are recorded, and the replay test is green locally (Windows, Node 24) and in CI (Linux,
+- [x] The headless harness runs the unmodified baseline; `src/` hashes still equal the T-001 table
+- [x] Golden fixtures are recorded, and the replay test is green locally (Windows, Node 24) and in CI (Linux,
       Node 22)
-- [ ] `docs/baseline-metrics.md` records distance, crashes and runtime for every recorded scenario
-- [ ] Every test task passed a mutation check (learned rule, 2026-11-08)
-- [ ] ADR-0010 accepted or revised
+- [x] `docs/baseline-metrics.md` records distance, crashes and runtime for every recorded scenario
+- [x] Every test task passed a mutation check (learned rule, 2026-11-08)
+- [x] ADR-0010 accepted or revised
 
 ## Phase 0 — Foundation
 
@@ -37,8 +37,8 @@ restructure must reproduce (ADR-0008, ADR-0010). `src/` stays byte-identical thr
 
 ## Board
 
-Phase 0 gate: signed by the owner on 2026-11-09. Phase 1 is current (T-101 to T-103); T-101 to T-103 are
-done and the Phase 1 gate is next.
+Phase 0 gate: signed by the owner on 2026-11-09. Phase 1 gate: signed by the owner on 2026-11-20 (T-101 to
+T-103 are done). Phase 2 has no task cards yet; it is planned next (`/plan-phase`).
 
 `main` is protected by the `protect-main` ruleset: `lint and test` is a required check, so a pull request
 cannot merge until it is green.
@@ -395,6 +395,8 @@ cannot merge until it is green.
 | 2026-11-20 | T-103 | Fixtures recorded with `npm run golden:record` on Node 24.12.0 (Windows): `seed-1` best distance 2042.95 px, 24 crashed, 76 surviving; `seed-2` 2087.1499999999996, 37, 63; `seed-3` 2053.3999999999996, 26, 74; `seed-4-gen2` 2083.249999999999, 13, 87; about 3.6 to 4.1 s per 1,000 ticks. The scenarios are not degenerate: the best car's row changes on 960, 998, 979 and 1,000 of 1,000 ticks. Criterion 2: the replay passed on Linux with Node 22.23.4 in CI, so the Windows/Node 24 fixtures match on both and the ADR-0010 assumption held. Verifier PASS, reviewer APPROVE (five Minors fixed in `da25fd3`) | `docs/baseline-metrics.md`; fixtures total 266,521 bytes; `npm run check` 148 tests (run 3 times in a row); CI run 44764311470 (8 files, 148 tests) |
 | 2026-11-20 | T-103 | Mismatch and mutation checks, all on scratch copies. Mismatch (one changed fixture value): per-tick `y` gives `seed-1: tick 500, best car (index 62), field y: ...`; final AI car `x` gives `tick 1000, AI car 3, field x`; traffic car `y` gives `traffic car 2, field y`; a brain weight gives `best brain, field levels[0].weights[2][1]`. Mutation (replay fails): `friction` 0.0500001 (all four, tick 1); ray count 6 (all four) and 4 (all four); `mutate` amount 0.11 at `src/main.js:19` (only `seed-4-gen2`, `tick 43, all AI cars, field crashedCars: expected 4 but got 7`). The unmutated control passes. One mutant survives: `>` to `>=` in `feedForward`, which differs only when a neuron sum equals its bias exactly, and that never happens in these runs (not proven equivalent in general) | Verifier scratch outputs; `src/` SHA-256 unchanged and equal to the T-001 table |
 | 2026-11-20 | T-103 | Decisions and scope: the replay test moved into the fixtures commit so every commit passes `npm run check` (the card had it one commit earlier); added beyond the card, with approval: `tests/helpers/golden.js`, `tests/golden-compare.test.js`, `tests/baseline-metrics.test.js`, an optional `srcDir` in `createBaselineSim`, the test-only variables `GOLDEN_SRC_DIR` and `GOLDEN_FIXTURE_DIR`, `tests/golden/*.json` in `.prettierignore`; one metrics table with a row per scenario; README lines 20, 24, 35, 81 to 82, 86, 95 to 98 and 106 corrected factually. ADR-0010 stays Proposed: the owner accepts it in a separate pull request now that CI confirmed the match | `docs/baseline-metrics.md`; `README.md` |
+| 2026-11-20 | — | ADR-0010 accepted by the owner: the Windows/Node 24 fixtures matched the Linux/Node 22 CI replay, so the assumption held and ADR-0008's revisit note is not triggered. A revisit note covers the V8 maths-library risk (a future Node major with LLVM libm) | `docs/DECISIONS.md`; CI run 44764311470 |
+| 2026-11-20 | — | Phase 1 gate signed by the owner: all six gate boxes ticked, none left open. Evidence for the boxes ticked in this change: (2) `src/` SHA-256 of all 11 files compared with the T-001 table just now, all equal; the headless harness (T-102) and the replay (T-103) run the unmodified `src/`. (3) Log entry of T-103: replay green on Windows/Node 24.12.0 and in CI on Linux/Node 22.23.4 (run 44764311470); `lint and test` green on `main` after #15. (4) `docs/baseline-metrics.md` has distance, crashed and surviving cars and runtime for `seed-1`, `seed-2`, `seed-3`, `seed-4-gen2`. (5) Mutation checks are in the Log for every task that added tests (T-003, T-004, T-102, T-103); T-002 (tooling, no tests of its own), T-005 (CI), T-006 and T-101 (documents) added none. Survivors recorded in the Log: the T-102 swap of `network.js` and `sensor.js` (equivalent) and the T-103 `>` to `>=` in `feedForward` (not proven equivalent in general); the T-004 entry says only that none of the required mutations survived, so any other survivors there are not listed | Log entries above; hash comparison and `gh run list` run read-only |
 
 ### Baseline hash table (T-001, upstream commit `8b87236`)
 

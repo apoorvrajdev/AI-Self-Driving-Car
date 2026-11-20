@@ -16,7 +16,7 @@ Accepted decisions change only through a new ADR.
 | [0007](#adr-0007) | Modular stack with swappable drivers and a safety supervisor | Accepted | 2026-11-05 |
 | [0008](#adr-0008) | Determinism before features | Accepted | 2026-11-05 |
 | [0009](#adr-0009) | Pull-request delivery flow | Accepted | 2026-11-07 |
-| [0010](#adr-0010) | Golden trajectories: exact comparison, deliberate re-recording | Proposed | 2026-11-09 |
+| [0010](#adr-0010) | Golden trajectories: exact comparison, deliberate re-recording | Accepted | 2026-11-09 |
 
 ---
 
@@ -107,7 +107,9 @@ Accepted decisions change only through a new ADR.
   new driving feature. The refactor must reproduce golden trajectories recorded from the baseline.
 - **Consequences:** Phase 2 adds no visible features but makes testing, training and fair comparison possible.
 - **Revisit:** At T-103, if recording a baseline run for the golden trajectories proves impractical, revisit
-  this ADR (through a new ADR) before starting Phase 2.
+  this ADR (through a new ADR) before starting Phase 2. Checked at T-103 on 2026-11-20: recording was practical
+  and the replay matched on Windows with Node 24 and on Linux with Node 22, so this note was not triggered
+  (ADR-0010).
 
 ## ADR-0009
 
@@ -136,7 +138,7 @@ Accepted decisions change only through a new ADR.
 
 ## ADR-0010
 
-**Golden trajectories: exact comparison, deliberate re-recording** · Proposed · 2026-11-09
+**Golden trajectories: exact comparison, deliberate re-recording** · Accepted · 2026-11-09
 
 - **Context:** T-103 records runs of the unmodified baseline that the Phase 2 restructure must reproduce
   (ADR-0008). Sources checked on 2026-11-09:
@@ -146,12 +148,15 @@ Accepted decisions change only through a new ADR.
     (`src/base/ieee754.cc`), not the platform's maths library. The 2-argument `Math.hypot` used by the baseline
     reduces to the same operations in both.
   - V8's main branch moved `sin`, `cos` and `atan2` to LLVM's libm in May 2026 (commits `7c1d2c3`, `43f04a5`).
-    A future Node major will ship that change, and results may differ in the last bit.
+    A Node major will inherit that change when it picks up that V8 version, and results may differ in the last
+    bit.
   - The simulation is chaotic: one bit of difference can flip a collision or sensor comparison, after which
     the runs diverge instead of drifting, so no fixed tolerance separates "equal" from "different".
 - **Options:** (a) exact equality of every recorded number; (b) a fixed numeric tolerance; (c) compare summary
   metrics only (distance, crash count).
-- **Decision (proposed):** (a).
+- **Decision:** (a). Accepted by the owner on 2026-11-20, after T-103 checked the assumption below: the
+  fixtures recorded on Windows with Node 24.12.0 replayed identically in CI on Linux with Node 22.23.4 (run
+  44764311470).
   - Fixtures are JSON. A JavaScript number written by `JSON.stringify` reads back as the same number. The sign
     of zero is not compared (JSON writes `-0` as `0`), and the recorder rejects `NaN` and infinities.
   - A mismatch reports the first tick, car and field that differ, not just "not equal".
@@ -164,8 +169,18 @@ Accepted decisions change only through a new ADR.
   - The strongest possible guard for the Phase 2 restructure: any change of behaviour fails a test.
   - Phase 2 must keep the baseline's order of arithmetic operations until the goldens are deliberately
     retired, because even a reordered sum can change the last bit.
-  - Equality between Windows with Node 24 (local) and Linux with Node 22 (CI) is an assumption, checked by
-    T-103. If it fails, this ADR and ADR-0008 are revisited before Phase 2 (the ADR-0008 revisit note).
+  - Equality between Windows with Node 24 (local) and Linux with Node 22 (CI) was an assumption. T-103 checked
+    it on 2026-11-20 and it held, so ADR-0008 stays as accepted and Phase 2 can start.
+- **Revisit:** The accepted decision rests on V8 shipping the same `sin`, `cos` and `atan2` on every platform
+  and Node major used so far, which is true of its fdlibm port (Node 22 and 24) but not guaranteed later: V8's
+  main branch moved these functions to LLVM's libm in May 2026, and a Node major will inherit that change when
+  it picks up that V8 version.
+  - A Node major change alone (CI or the local toolchain) needs no new ADR: it follows the handling in the
+    decision above. If the golden replay stops matching, the goldens are re-recorded in that task, with a Log
+    entry naming both Node versions.
+  - Revisit this ADR, through a new ADR, if re-recording becomes frequent, or if one platform or Node major
+    cannot reproduce another's fixtures. Exact comparison would then no longer be practical, and a bounded or
+    metric-level comparison (options (b) and (c)) would need an ADR of its own.
 
 ---
 
