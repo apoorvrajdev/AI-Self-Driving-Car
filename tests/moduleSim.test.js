@@ -2,7 +2,8 @@
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { createModuleSim } from './helpers/moduleSim.js';
+import { makeSequenceRandom } from './helpers/loadLegacy.js';
+import { bindRandom, createModuleSim, loadSrcModules } from './helpers/moduleSim.js';
 
 /** The host objects the page needs and the bridge stubs. */
 const STUBBED = ['document', 'window', 'localStorage', 'Image', 'requestAnimationFrame'];
@@ -136,5 +137,46 @@ describe('module bridge: the page behaviour is reachable', () => {
       seen.add(sim.state().bestIndex);
     }
     expect(seen.size).toBeGreaterThan(1);
+  });
+});
+
+describe('module bridge: bindRandom gives each handle its own Math.random', () => {
+  it('feeds a call the handle’s draws and puts Math.random back afterwards', async () => {
+    const { getRandomColor } = bindRandom(
+      await loadSrcModules(['utils.js']),
+      makeSequenceRandom([0]),
+    );
+    const original = Math.random;
+    expect(getRandomColor()).toBe('hsl(290, 100%, 60%)');
+    expect(Math.random).toBe(original);
+  });
+
+  it('restores Math.random when the wrapped call throws', async () => {
+    const { NeuralNetwork } = bindRandom(await loadSrcModules(['utils.js', 'network.js']));
+    const original = Math.random;
+    expect(() => NeuralNetwork.feedForward([1, 2, 3], new NeuralNetwork([3]))).toThrow(TypeError);
+    expect(Math.random).toBe(original);
+  });
+
+  it('wraps constructors and static methods, and keeps instanceof working', async () => {
+    const { NeuralNetwork } = bindRandom(
+      await loadSrcModules(['utils.js', 'network.js']),
+      makeSequenceRandom([0.5, 0.5, 0.5, 1]),
+    );
+    const net = new NeuralNetwork([2, 1]);
+    expect(net).toBeInstanceOf(NeuralNetwork);
+    NeuralNetwork.mutate(net, 1);
+    // Construction drew 0.5 three times, so every value started at 0; mutate then drew 1.
+    expect(net.levels[0].biases).toEqual([1]);
+  });
+
+  it('two handles do not share draws', async () => {
+    const modules = await loadSrcModules(['utils.js', 'network.js']);
+    const a = bindRandom(modules, makeSequenceRandom([0]));
+    const b = bindRandom(modules, makeSequenceRandom([1]));
+    const netA = new a.NeuralNetwork([2, 1]);
+    const netB = new b.NeuralNetwork([2, 1]);
+    expect(netA.levels[0].biases).toEqual([-1]);
+    expect(netB.levels[0].biases).toEqual([1]);
   });
 });

@@ -17,6 +17,55 @@ export const MODULES_DIR = process.env.MODULES_SRC_DIR
 const BUTTON_IDS = new Set(['saveButton', 'discardButton']);
 
 /**
+ * Imports some src/ modules and returns their exports merged into one object. The modules must have no
+ * top-level side effects (utils.js and network.js qualify; main.js does not).
+ * `srcDir` loads them from another directory (a scratch copy of src/) instead of MODULES_DIR.
+ * @param {string[]} files file names under src/, for example ['utils.js', 'network.js']
+ * @param {{ srcDir?: string }} [options]
+ * @returns {Promise<Record<string, any>>}
+ */
+export async function loadSrcModules(files, { srcDir } = {}) {
+  const base = srcDir === undefined ? MODULES_DIR : pathToFileURL(resolve(srcDir) + sep);
+  const namespaces = await Promise.all(
+    files.map((file) => import(/* @vite-ignore */ new URL(file, base).href)),
+  );
+  return Object.assign({}, ...namespaces);
+}
+
+/**
+ * Wraps module exports so that every call, construction and static call runs with Math.random replaced by
+ * `random`, and puts Math.random back afterwards, even if the call throws. This is the module counterpart of
+ * loadLegacy's per-context Math.random: each handle has its own generator, so two handles never share draws.
+ * @param {Record<string, any>} exports
+ * @param {() => number} [random]
+ * @returns {Record<string, any>}
+ */
+export function bindRandom(exports, random = makeSeededRandom(1)) {
+  /** @template T @param {() => T} fn @returns {T} */
+  const withRandom = (fn) => {
+    const spy = vi.spyOn(Math, 'random').mockImplementation(random);
+    try {
+      return fn();
+    } finally {
+      spy.mockRestore();
+    }
+  };
+  /** @param {any} value */
+  const bind = (value) => {
+    if (typeof value !== 'function') return value;
+    /** @type {any} */
+    const proxy = new Proxy(value, {
+      apply: (target, thisArg, args) => withRandom(() => Reflect.apply(target, thisArg, args)),
+      construct: (target, args, newTarget) =>
+        withRandom(() => Reflect.construct(target, args, newTarget === proxy ? target : newTarget)),
+      get: (target, property) => bind(Reflect.get(target, property)),
+    });
+    return proxy;
+  };
+  return Object.fromEntries(Object.entries(exports).map(([name, value]) => [name, bind(value)]));
+}
+
+/**
  * Runs the src/ modules in Node, as createBaselineSim runs the baseline. Every call imports src/main.js
  * afresh (vi.resetModules, then a dynamic import, which Vitest 4 re-evaluates), with the page's host objects
  * stubbed through vi.stubGlobal and Math.random replaced by a seeded generator through vi.spyOn. dispose()
