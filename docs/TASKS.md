@@ -56,7 +56,8 @@ restructure must reproduce (ADR-0008, ADR-0010). `src/` stays byte-identical thr
 ## Board
 
 Phase 0 gate: signed by the owner on 2026-11-09. Phase 1 gate: signed by the owner on 2026-11-20 (T-101 to
-T-103 are done). Phase 2 is planned as T-201 to T-206, with ADR-0011 and ADR-0012 proposed.
+T-103 are done). Phase 2 is planned as T-201 to T-206, with T-204 split into T-204a and T-204b, and with
+ADR-0011 and ADR-0012 proposed.
 
 `main` is protected by the `protect-main` ruleset: `lint and test` is a required check, so a pull request
 cannot merge until it is green.
@@ -76,9 +77,10 @@ cannot merge until it is green.
 | T-201 | Freeze the baseline in `baseline/` | 2 | todo | T-103 |
 | T-202 | ES modules, behaviour unchanged | 2 | todo | T-201 |
 | T-203 | One seeded generator, passed in explicitly | 2 | todo | T-202 |
-| T-204 | DOM-free simulation core and render layer | 2 | todo | T-203 |
-| T-205 | Fixed time step in the browser | 2 | todo | T-204 |
-| T-206 | Headless runner | 2 | todo | T-204 |
+| T-204a | DOM-free world core | 2 | todo | T-203 |
+| T-204b | Render layer and page code | 2 | todo | T-204a |
+| T-205 | Fixed time step in the browser | 2 | todo | T-204b |
+| T-206 | Headless runner | 2 | todo | T-204a |
 
 ---
 
@@ -451,7 +453,7 @@ cannot merge until it is green.
       with `addEventListener`, because the inline `onclick` needs globals.
     - Statements and arithmetic are otherwise unchanged. `main.js` still runs at import, as the page does, and
       exports `cars`, `traffic`, `bestCar`, `save` and `discard`.
-  - `tests/helpers/moduleSim.js`, a bridge that T-204 removes:
+  - `tests/helpers/moduleSim.js`, a bridge that T-204b removes:
     - Imports `src/main.js` afresh for each run: `vi.resetModules()`, then a dynamic import, which the Vitest 4
       docs say re-evaluates the module. An optional `srcDir` loads a scratch copy.
     - Stubs `document`, `window`, `localStorage`, `Image` and `requestAnimationFrame` with `vi.stubGlobal`, and
@@ -538,15 +540,19 @@ cannot merge until it is green.
   src/sim/rng.js`, `docs(tasks): complete T-203`.
 - **Size:** about 60 lines of source and 120 of tests.
 
-### T-204 — DOM-free simulation core and render layer
+T-204 is split in two (owner decision, 2026-11-20). After T-204a the page still runs on the flat modules of
+T-203, unchanged, while the new core is replayed against the goldens beside them. After T-204b the page runs on
+the core and the flat modules are deleted. Between the two tasks the simulation logic exists twice in `src/`;
+the same golden replay guards both copies, so they cannot drift apart unnoticed.
+
+### T-204a — DOM-free world core
 
 - **Status:** todo · **Phase 2**
-- **Goal:** Split the simulation from the drawing. `src/sim/` holds the world state and its one-tick update
-  with no DOM access; `src/render/` draws a world without changing it; `src/app/` is the browser entry. The
-  golden replay runs against the core directly, with no stubs (ADR-0007, ADR-0012).
-- **Context:** `src/` after T-203, ARCHITECTURE §3 to §6, ADR-0010, ADR-0012, `tests/helpers/moduleSim.js`,
-  `tests/helpers/golden.js`, `tests/golden.test.js`, `docs/baseline-walkthrough.md` (frame loop),
-  `eslint.config.js`.
+- **Goal:** `src/sim/` holds the world state and its one-tick update with no DOM access, covered by unit tests,
+  and the golden replay runs against it directly, with no stubs. The page is not changed (ADR-0007, ADR-0012).
+- **Context:** `src/` after T-203, ARCHITECTURE §4 and §6, ADR-0010, ADR-0012, `tests/helpers/moduleSim.js`,
+  `tests/helpers/golden.js`, `tests/golden.test.js`, `tests/utils.test.js`, `tests/network.test.js`,
+  `docs/baseline-walkthrough.md` (frame loop and movement rules), `eslint.config.js`.
 - **Deliverables:**
   - `src/sim/` (`// @ts-check`, JSDoc on every export):
     - `world.js`: `createWorld({ seed, savedBrain })` returns `step()`, `state()`, `tick`, and read access for
@@ -560,45 +566,90 @@ cannot merge until it is green.
     - Brains keep the baseline shape (`levels` of `inputs`, `outputs`, `biases` and `weights`), so brains
       saved by the original page still load and the fixture comparison of `bestBrain` holds.
     - A traffic car keeps its colour as data; the core has no `Image`, canvas or mask.
+  - The golden replay calls `createWorld` directly, beside the existing replays against `baseline/` and
+    against the flat modules through the bridge. Fixture tick n is world tick n + 1 (ADR-0012), and a small
+    adapter maps the unit-named fields to the fixture's `x`, `y`, `angle`, `speed` and `damaged`.
+  - The characterization cases also run against `src/sim/`. The runs against `baseline/` and the flat modules
+    stay; T-204b removes the flat-module runs with the flat modules.
+  - Unit tests of the core (`tests/sim-*.test.js`), with expected values worked out in the test from the
+    movement rules, not taken from the code:
+    - world: `createWorld` gives tick 0, best index 0 and all AI cars at `y = 100`; each `step()` adds one
+      tick; traffic is updated before the AI cars; the best car is the first with the smallest `y`, damaged or
+      not; the same seed gives the same state; with a saved brain, car 0 gets it exactly and the others differ
+    - car: one tick from rest with forward gives speed `0 + 0.2 - 0.05` computed in the test, which is
+      0.15000000000000002 in doubles, not 0.15; friction is applied after the cap, so with forward
+      held the speed settles at the maximum minus friction (2.95 for an AI car), and in reverse at minus half
+      the maximum plus friction (−1.45), both computed in the test; friction brings a small speed to 0; steering only acts while moving and is
+      flipped in reverse; a damaged car stops moving, while its sensor and brain keep updating
+    - sensor: 5 rays spread over 90°, a reading is the nearest touch, and nothing within 150 px gives null
+    - road: the three lane centres, and an index above the last lane gives the last lane
+  - `eslint.config.js`: `src/sim/**` has no browser globals and forbids `Math.random`
+    (`no-restricted-properties`).
+  - ARCHITECTURE §4 (as in ADR-0012) and §6 (units).
+- **Acceptance criteria:**
+  1. The replay of all four scenarios is green against `createWorld`, against the flat modules (bridge) and
+     against `baseline/`, locally and in CI, with no global stubbed on the `createWorld` side.
+  2. The core is DOM-free: `src/sim/world.js` imports and runs in Node with no stubs; on a scratch copy,
+     `npm run lint` fails when a file in `src/sim/` uses `document`, `window`, `localStorage`, `Image`,
+     `requestAnimationFrame` or `Math.random`; no file in `src/sim/` imports from outside `src/sim/`.
+  3. The unit tests above pass and each states the rule it checks.
+  4. A brain saved by the baseline harness (`save()` on `baseline/`) loads into `createWorld` as car 0's brain
+     unchanged, and a brain taken from the world has the same keys and shape.
+  5. The page is unchanged: no file outside `src/sim/` in `src/` is modified, and `npm run dev` still serves it
+     (verifier: `/` and `/main.js` return 200).
+  6. Mutation check: at least six mutants on scratch copies of `src/sim/` (friction; ray count; traffic not
+     updated; the last car with the smallest `y` chosen instead of the first; the sensor keeping the farthest
+     touch; AI cars updated before traffic), each failing the replay or a unit test.
+- **Verification:** `npm run check` green; `gh pr checks` green; the mutation table; the lint-failure output.
+  If the plan estimates more than 400 hand-written lines, it is shown to the owner before implementing.
+- **Branch and commits:** `refactor/t-204a-world-core`; `refactor(sim): extract the DOM-free world core` (with
+  its replay, characterization cases and unit tests), `build(lint): keep the DOM and Math.random out of
+  src/sim/`, `docs(architecture): describe the world interface and units`, `docs(tasks): complete T-204a`.
+  Every commit leaves `npm run check` green.
+- **Size:** about 400 to 450 lines of core once formatted, most of it moved code with renamed fields, and
+  about 180 of tests. Expect the 400-line clause above to apply: the plan goes to the owner before any code.
+
+### T-204b — Render layer and page code
+
+- **Status:** todo · **Phase 2**
+- **Goal:** The page runs on the world core: `src/render/` draws a world without changing it, `src/app/` is the
+  browser entry, and the flat modules and the bridge are removed (ADR-0007, ADR-0012).
+- **Context:** `src/` after T-204a, `src/sim/world.js`, ARCHITECTURE §2 and §5, ADR-0011, ADR-0012,
+  `tests/helpers/moduleSim.js`, `tests/golden.test.js`, `README.md` (project tree).
+- **Deliverables:**
   - `src/render/`: road, cars (the renderer caches one mask canvas per car), sensor rays, `visualizer.js` and
     `getRGBA`. Rendering reads the state and never writes it.
   - `src/app/main.js`: creates the world, the renderer and the save and discard buttons (`localStorage` key
     `bestBrain`, as before), and runs one `step()` and one draw per animation frame, as now; the fixed time
-    step is T-205. Keyboard driving (`KEYS`, unused by the page, as in the baseline) moves to
+    step is T-205. Saving and discarding are small functions that take the storage and the world, so they can
+    be tested with a stub. Keyboard driving (`KEYS`, unused by the page, as in the baseline) moves to
     `src/app/keyboard.js`. `index.html` loads `app/main.js`.
-  - The golden replay calls `createWorld` directly. Fixture tick n is world tick n + 1 (ADR-0012), and a small
-    adapter maps the unit-named fields to the fixture's `x`, `y`, `angle`, `speed` and `damaged`. The flat
-    files of T-202 and the bridge `tests/helpers/moduleSim.js` are deleted (planned removals).
-  - The characterization cases run against `baseline/` and `src/sim/`.
-  - `eslint.config.js`: `src/sim/**` has no browser globals and forbids `Math.random`
-    (`no-restricted-properties`).
-  - ARCHITECTURE §2 (the baseline now lives in `baseline/`), §4 (as in ADR-0012), §5 (the final `src/`
-    layout) and §6 (units); the README project tree.
+  - The flat modules of T-202 and T-203 and the bridge `tests/helpers/moduleSim.js` are deleted (planned
+    removals), with the bridge replay. The replays against `createWorld` and `baseline/` stay.
+  - ARCHITECTURE §2 (the baseline now lives in `baseline/`) and §5 (the final `src/` layout); the README
+    project tree.
 - **Acceptance criteria:**
   1. The replay of all four scenarios is green against `createWorld` and against `baseline/`, locally and in
-     CI, with no global stubbed on the `src/` side.
-  2. The core is DOM-free: `src/sim/world.js` imports and runs in Node with no stubs; on a scratch copy,
-     `npm run lint` fails when a file in `src/sim/` uses `document`, `window`, `localStorage`, `Image`,
-     `requestAnimationFrame` or `Math.random`; no file in `src/sim/` imports from `src/render/` or `src/app/`.
-  3. Rendering never changes the state: drawing every tick of a 200-tick run on a stub context leaves
+     CI.
+  2. Rendering never changes the state: drawing every tick of a 200-tick run on a stub context leaves
      `state()` equal, value by value, to the same run without drawing.
-  4. A brain saved by the baseline harness (`save()` on `baseline/`) loads into `createWorld` as car 0's brain
-     unchanged, and a brain saved from the world has the same keys and shape.
-  5. Mutation check: at least six mutants on scratch copies of `src/sim/` (friction; ray count; traffic not
-     updated; the last car with the smallest `y` chosen instead of the first; the sensor keeping the farthest
-     touch; AI cars updated before traffic), each failing the replay; and two mutants in `src/render/` that
-     write to the state, each caught by the test of criterion 3.
-  6. `npm run dev` shows the same page as `npm run dev:baseline`, and save and discard work as before
-     (OWNER-CHECK).
-- **Verification:** `npm run check` green; `gh pr checks` green; the mutation table; the lint-failure output.
-  If the plan estimates more than 400 hand-written lines, the render layer and app move to a separate card
-  before implementing, and the plan is shown to the owner.
-- **Branch and commits:** `refactor/t-204-sim-render-split`; `refactor(sim): extract the DOM-free simulation
-  core` (with its replay and characterization cases), `refactor(app): draw and run the page from the world`
-  (render layer, app, `index.html`; removes the flat files and the bridge), `build(lint): keep the DOM and
-  Math.random out of src/sim/`, `docs(architecture): describe the Phase 2 layout`, `docs(tasks): complete
-  T-204`. Every commit leaves `npm run check` green.
-- **Size:** about 350 hand-written lines; most of the core is moved code.
+  3. Saving stores the best car's brain under `bestBrain`, and discarding removes it (test with a storage
+     stub). The test first steps the world until the best car is not car 0 (seed 1 after 300 ticks), and
+     asserts that, so saving car 0 by mistake cannot pass.
+  4. No file in `src/` outside `src/sim/`, `src/render/` and `src/app/` remains, apart from `index.html`,
+     `style.css` and `car.png`; nothing in `src/` or `tests/` imports a deleted file.
+  5. Mutation check: two mutants in `src/render/` that write to the state, each caught by the test of
+     criterion 2, and one in `src/app/` that saves car 0's brain instead of the best car's, caught by the test
+     of criterion 3.
+  6. `npm run dev` shows the same page as `npm run dev:baseline`; save, then reload, keeps car 0's brain and
+     mutates the others, and discard removes it (OWNER-CHECK).
+- **Verification:** `npm run check` green; `gh pr checks` green; the mutation table. If the plan estimates more
+  than 400 hand-written lines, it is shown to the owner before implementing.
+- **Branch and commits:** `refactor/t-204b-render-and-page`; `refactor(render): draw the world from its state`,
+  `refactor(app): run the page from the world and the renderer` (`index.html`; removes the flat modules and
+  the bridge), `docs(architecture): describe the Phase 2 layout`, `docs(tasks): complete T-204b`. Every commit
+  leaves `npm run check` green.
+- **Size:** about 150 lines of render and app code and 60 of tests.
 
 ### T-205 — Fixed time step in the browser
 
@@ -737,6 +788,7 @@ cannot merge until it is green.
 | 2026-11-20 | — | ADR-0010 accepted by the owner: the Windows/Node 24 fixtures matched the Linux/Node 22 CI replay, so the assumption held and ADR-0008's revisit note is not triggered. A revisit note covers the V8 maths-library risk (a future Node major with LLVM libm) | `docs/DECISIONS.md`; CI run 44764311470 |
 | 2026-11-20 | — | Phase 1 gate signed by the owner: all six gate boxes ticked, none left open. Evidence for the boxes ticked in this change: (2) `src/` SHA-256 of all 11 files compared with the T-001 table just now, all equal; the headless harness (T-102) and the replay (T-103) run the unmodified `src/`. (3) Log entry of T-103: replay green on Windows/Node 24.12.0 and in CI on Linux/Node 22.23.4 (run 44764311470); `lint and test` green on `main` after #15. (4) `docs/baseline-metrics.md` has distance, crashed and surviving cars and runtime for `seed-1`, `seed-2`, `seed-3`, `seed-4-gen2`. (5) Mutation checks are in the Log for every task that added tests (T-003, T-004, T-102, T-103); T-002 (tooling, no tests of its own), T-005 (CI), T-006 and T-101 (documents) added none. Survivors recorded in the Log: the T-102 swap of `network.js` and `sensor.js` (equivalent) and the T-103 `>` to `>=` in `feedForward` (not proven equivalent in general); the T-004 entry says only that none of the required mutations survived, so any other survivors there are not listed | Log entries above; hash comparison and `gh run list` run read-only |
 | 2026-11-20 | — | Phase 2 planned: T-201 to T-206 written out with criteria, verification and commits; Phase 2 gate added; ADR-0011 (frozen copy in `baseline/`) and ADR-0012 (one fixed tick, one explicit seeded generator) proposed. Research, all sources opened 2026-11-20: Glenn Fiedler, "Fix Your Timestep!" (2004-06-10): accumulator, frame time clamped to 0.25 s against the "spiral of death", optional interpolation; no licence on its snippets. MDN `requestAnimationFrame` (last modified 2026-08-21): callbacks follow the display refresh rate, an animation that ignores the timestamp "will run faster on high refresh-rate screens", callbacks pause in background tabs; WHATWG HTML §8.1.7.3. Mulberry32: 32-bit state, period 2^32; its author noted on 2022-11-10 that it cannot produce about a third of all 32-bit values; one run draws at most 12,743 numbers. Vitest 4.1.12 docs: `vi.resetModules()` then a dynamic import re-evaluates the module; `vi.unstubAllGlobals` restores `vi.stubGlobal`; `mockRestore` restores a `vi.spyOn`; `isolate` defaults to true with the `forks` pool | ADR-0011 and ADR-0012 in `docs/DECISIONS.md`; planning pull request awaiting owner approval |
+| 2026-11-20 | — | Owner approved the Phase 2 scope, with ADR-0011 and ADR-0012 left Proposed, and asked to split T-204 if both halves keep the page working and the goldens matching. Split into T-204a (world core, unit tests; the page stays on the flat modules) and T-204b (render layer and page code; flat modules and bridge removed); T-205 now depends on T-204b and T-206 on T-204a. Owner approved in advance, on 2026-11-20, the two `.gitattributes` changes (add `baseline/** -text` in T-201, drop `src/** -text` in T-202); each is still shown to the owner before it is committed in its task | T-204a and T-204b cards; board |
 
 ### Baseline hash table (T-001, upstream commit `8b87236`)
 

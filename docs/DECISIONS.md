@@ -212,7 +212,7 @@ Accepted decisions change only through a new ADR.
     into `baseline/`, and every restructured file starts a fresh history.
   - (c) Copy the original into `baseline/`, byte-identical and checked by a hash test, and restructure `src/`
     in place. About 32 KB is duplicated. The early restructuring commits (formatting, modules, the generator)
-    show as changes to the same files; once T-204 splits them into `src/sim/` and `src/render/`, history
+    show as changes to the same files; once T-204b splits them into `src/sim/` and `src/render/`, history
     no longer links file by file.
 - **Decision (proposed):** (c). The harness, the recorder and the characterization tests keep running on the
   real original in every checkout, including CI, which checks out only the latest commit and has no history to
