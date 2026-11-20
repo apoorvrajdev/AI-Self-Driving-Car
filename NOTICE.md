@@ -13,12 +13,13 @@ licence. The full licence text is in [LICENSE](LICENSE).
 | Upstream commit | `8b8723685bb4ab94cf504998466b6c337c35335c` |
 | Import date | 2026-11-05 |
 | Licence | MIT, Copyright (c) 2022 Radu Mariescu-Istodor |
-| Location here | `src/` (11 files, byte-identical to upstream at import) |
+| Location here | `baseline/` (11 files, byte-identical to upstream, never edited); `src/` started as the same 11 files and is derived from them |
 | Course | Self-driving Car (no libraries), JavaScript: https://www.youtube.com/playlist?list=PLB0Tybl0UNfYoJE7ZwsBQoDIG4YN9ptyY |
 
-The code in `src/` was written by the original author during the course above. Files in `src/` that are changed
-in later work remain derived from this baseline and stay under the same MIT licence, with the additional
-copyright line for later contributions in [LICENSE](LICENSE).
+The code in `baseline/` was written by the original author during the course above. `src/` was imported from
+the same files, and the files in `src/` that are changed in later work remain derived from this baseline and
+stay under the same MIT licence, with the additional copyright line for later contributions in
+[LICENSE](LICENSE).
 
 ## Third-party components
 

@@ -33,7 +33,14 @@ npm run dev
 Vite serves `src/` and prints the address, normally http://localhost:5173. The page shows the road, the traffic,
 the sensor rays and the network panel. Stop the server with Ctrl+C.
 
-`src/visualizer.js` is stored as UTF-16, as in the original. A small plugin in `vite.config.js` decodes it when
+To see the original page, served from the frozen copy in `baseline/` that stays unchanged while `src/` is
+restructured, run:
+
+```sh
+npm run dev:baseline
+```
+
+`visualizer.js` is stored as UTF-16, as in the original. A small plugin in `vite.config.js` decodes it when
 it is served; the file itself is not changed.
 
 ## Test and lint

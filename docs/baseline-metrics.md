@@ -22,7 +22,7 @@ The numbers are pasted from the output of `npm run golden:record` and checked ag
 - **Tick 0** is the state after the page has loaded, which includes one update (see ADR-0010 and the T-102 log
   entry). Tick 1,000 is the state after 1,000 steps.
 - **Best distance** is `100 - y` of the best car at tick 1,000, in pixels. The best car is the one furthest up the
-  road, whether or not it has crashed (`bestCar` in `src/main.js`), so this is not a safe-driving score.
+  road, whether or not it has crashed (`bestCar` in `baseline/main.js`), so this is not a safe-driving score.
 - **Crashed and surviving** count AI cars (out of 100) that are damaged at tick 1,000. Traffic cars are
   not counted.
 - **Runtime** is the time spent inside `step` for 1,000 ticks, measured once while recording (Windows, Node 24.12.0,
@@ -46,7 +46,7 @@ Fixtures are written only by `npm run golden:record`. Tests never write them.
 
 Re-recording is allowed only in a task whose card says so, for one of these reasons, and it needs a log entry:
 
-1. The baseline in `src/` was deliberately changed (for example when Phase 2 retires the goldens).
+1. The baseline in `baseline/` was deliberately changed (for example when Phase 2 retires the goldens).
 2. The Node major used by CI or the local toolchain changed and the replay no longer matches (ADR-0010: V8's
    `sin`, `cos` and `atan2` may differ in the last bit). The log entry names both Node versions.
 
@@ -56,5 +56,5 @@ above (the number of ticks that change, the file size, the Node version) are not
 by hand with the table.
 
 Two environment variables exist for checking the checker, and are unset in normal runs and in CI:
-`GOLDEN_SRC_DIR` replays against a scratch copy of `src/` (mutation checks) and `GOLDEN_FIXTURE_DIR` reads
+`GOLDEN_SRC_DIR` replays against a scratch copy of `baseline/` (mutation checks) and `GOLDEN_FIXTURE_DIR` reads
 fixtures from another directory (mismatch-reporting checks).
