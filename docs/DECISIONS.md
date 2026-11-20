@@ -17,7 +17,7 @@ Accepted decisions change only through a new ADR.
 | [0008](#adr-0008) | Determinism before features | Accepted | 2026-11-05 |
 | [0009](#adr-0009) | Pull-request delivery flow | Accepted | 2026-11-07 |
 | [0010](#adr-0010) | Golden trajectories: exact comparison, deliberate re-recording | Accepted | 2026-11-09 |
-| [0011](#adr-0011) | Freeze the baseline in `baseline/` and restructure `src/` in place | Proposed | 2026-11-20 |
+| [0011](#adr-0011) | Freeze the baseline in `baseline/` and restructure `src/` in place | Accepted | 2026-11-20 |
 | [0012](#adr-0012) | One fixed tick and one explicit seeded generator | Proposed | 2026-11-20 |
 
 ---
@@ -191,7 +191,7 @@ Accepted decisions change only through a new ADR.
 
 ## ADR-0011
 
-**Freeze the baseline in `baseline/` and restructure `src/` in place** · Proposed · 2026-11-20
+**Freeze the baseline in `baseline/` and restructure `src/` in place** · Accepted · 2026-11-20
 
 - **Context:**
   - Phase 2 restructures `src/` (ES modules, a DOM-free core, a seeded generator), so its files stop being the
@@ -214,9 +214,9 @@ Accepted decisions change only through a new ADR.
     in place. About 32 KB is duplicated. The early restructuring commits (formatting, modules, the generator)
     show as changes to the same files; once T-204b splits them into `src/sim/` and `src/render/`, history
     no longer links file by file.
-- **Decision (proposed):** (c). The harness, the recorder and the characterization tests keep running on the
-  real original in every checkout, including CI, which checks out only the latest commit and has no history to
-  recover it from. Option (b) would give the same, but a move leaves no `src/`: the page and its tests stop
+- **Decision:** (c). Accepted by the owner on 2026-11-20. The harness, the recorder and the characterization
+  tests keep running on the real original in every checkout, including CI, which checks out only the latest
+  commit and has no history to recover it from. Option (b) would give the same, but a move leaves no `src/`: the page and its tests stop
   working until a new `src/` exists, so the move cannot be a separate step that keeps the checks green, while
   under (c) every restructuring step is a small change to files that already work.
 - **Consequences:**
