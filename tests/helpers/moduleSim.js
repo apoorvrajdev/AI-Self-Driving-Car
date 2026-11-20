@@ -36,6 +36,8 @@ export async function loadSrcModules(files, { srcDir } = {}) {
  * Wraps module exports so that every call, construction and static call runs with Math.random replaced by
  * `random`, and puts Math.random back afterwards, even if the call throws. This is the module counterpart of
  * loadLegacy's per-context Math.random: each handle has its own generator, so two handles never share draws.
+ * Instance methods are not wrapped (the `prototype` is returned as it is), and a static method runs with the
+ * proxy as `this`. Nothing in src/ needs either today; revisit this if an instance method starts to draw.
  * @param {Record<string, any>} exports
  * @param {() => number} [random]
  * @returns {Record<string, any>}
