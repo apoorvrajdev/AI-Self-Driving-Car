@@ -35,7 +35,9 @@ the sensor rays and the network panel. The save and discard buttons store and re
 `localStorage`. Stop the server with Ctrl+C.
 
 `src/` is ES modules: `index.html` loads one `<script type="module" src="main.js">`, and `main.js` imports the
-other files and wires the two buttons with `addEventListener`.
+other files and wires the two buttons with `addEventListener`. Browsers do not load module scripts from a
+`file://` address, so the page must be served: open it through `npm run dev`, not by double-clicking
+`index.html`.
 
 To see the original page, served from the frozen copy in `baseline/` that stays unchanged while `src/` is
 restructured, run:

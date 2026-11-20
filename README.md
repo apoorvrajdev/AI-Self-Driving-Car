@@ -27,8 +27,8 @@ reproduced or compared. This project adds tests and determinism before it adds f
 
 Phase 0 (foundation) was signed off on 2026-11-09. Phase 1 (understand and measure the baseline) is in progress.
 `baseline/` holds the original simulation, frozen and never edited. `src/` is the same code converted to ES
-modules with its behaviour unchanged (the golden replay passes against both); Phase 2 restructures it further. Tasks, acceptance criteria and the log are in
-[docs/TASKS.md](docs/TASKS.md).
+modules with its behaviour unchanged (the golden replay passes against both); Phase 2 restructures it further.
+Tasks, acceptance criteria and the log are in [docs/TASKS.md](docs/TASKS.md).
 
 | Phase | Scope | State |
 | --- | --- | --- |
