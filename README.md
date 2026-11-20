@@ -25,16 +25,17 @@ reproduced or compared. This project adds tests and determinism before it adds f
 
 ## Status
 
-Phase 0 (foundation) was signed off on 2026-11-09. Phase 1 (understand and measure the baseline) is in progress.
-`baseline/` holds the original simulation, frozen and never edited. `src/` is the same code converted to ES
-modules with its behaviour unchanged (the golden replay passes against both); Phase 2 restructures it further.
+Phase 0 (foundation) was signed off on 2026-11-09 and Phase 1 (understand and measure the baseline) on 2026-11-20.
+Phase 2 (restructure without changing behaviour) is in progress. `baseline/` holds the original simulation, frozen
+and never edited. `src/` is the same code converted to ES modules with its behaviour unchanged (the golden replay
+passes against both); the rest of Phase 2 restructures it further.
 Tasks, acceptance criteria and the log are in [docs/TASKS.md](docs/TASKS.md).
 
 | Phase | Scope | State |
 | --- | --- | --- |
 | 0 | Dev server, lint, characterization tests, commit-guard tests, CI, README and setup guide (T-000 to T-006) | Done |
-| 1 | A written walkthrough of the baseline (T-101), a headless run of the unmodified code (T-102), recorded reference runs (T-103) | T-101 to T-103 done |
-| 2 | ES modules, simulation and rendering split, fixed time step, seeded RNG, golden-trajectory tests | Planned |
+| 1 | A written walkthrough of the baseline (T-101), a headless run of the unmodified code (T-102), recorded reference runs (T-103) | Done |
+| 2 | ES modules, simulation and rendering split, fixed time step, seeded RNG, golden-trajectory tests | In progress (T-201 and T-202 done) |
 | 3 | Road graph, vehicle model, traffic lights, traffic and pedestrians, scenario files | Planned |
 | 4 | Parallel headless evolution, imitation learning, ONNX in the browser | Planned |
 | 5 | Synthetic camera, detector, tracking, prediction, planner, safety supervisor, control | Planned |
