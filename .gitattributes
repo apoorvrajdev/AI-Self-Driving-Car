@@ -3,5 +3,6 @@
 .githooks/* text eol=lf
 *.sh text eol=lf
 *.png binary
-# Imported baseline: store exactly as imported, never normalise line endings
+# Imported baseline and its frozen copy: store exactly as imported, never normalise line endings
 src/** -text
+baseline/** -text
