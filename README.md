@@ -17,7 +17,7 @@ reproduced or compared. This project adds tests and determinism before it adds f
 
 | | |
 | --- | --- |
-| **Today** | The original simulation in `src/` (11 files, byte-identical to upstream), served by Vite, with 145 passing tests |
+| **Today** | The original simulation in `src/` (11 files, byte-identical to upstream), served by Vite, with 148 passing tests |
 | **Planned** | Seeded, fixed-step, headless simulation; a road graph and traffic; swappable drivers; a safety supervisor; scenario metrics |
 | **Toolchain** | Node.js 20+, Vite, Vitest, ESLint, Prettier, all exact-pinned dev dependencies; the simulation itself uses no libraries |
 | **Delivery** | Pull requests only, merged with a merge commit; `lint and test` is a required check on `main` |
@@ -79,7 +79,7 @@ flowchart LR
 | --- | --- |
 | The original code is kept byte-identical | SHA-256 table recorded at T-001 in [docs/TASKS.md](docs/TASKS.md); `src/**` is marked `-text` in [.gitattributes](.gitattributes) |
 | Behaviour is pinned before any change | 32 characterization tests: [utils](tests/utils.test.js) (14) and [network](tests/network.test.js) (18); 20 tests of a [headless harness](tests/headless.test.js) that runs the unmodified code. Quirks are recorded, not fixed |
-| Reference runs of the original are recorded | Four golden runs in [tests/golden/](tests/golden), replayed and compared number by number: [golden](tests/golden.test.js) (11 tests), [golden-compare](tests/golden-compare.test.js) (18), [baseline-metrics](tests/baseline-metrics.test.js) (5), [mulberry32](tests/mulberry32.test.js) (7). Numbers: [docs/baseline-metrics.md](docs/baseline-metrics.md) |
+| Reference runs of the original are recorded | Four golden runs in [tests/golden/](tests/golden), replayed and compared number by number: [golden](tests/golden.test.js) (13 tests), [golden-compare](tests/golden-compare.test.js) (19), [baseline-metrics](tests/baseline-metrics.test.js) (5), [mulberry32](tests/mulberry32.test.js) (7). Numbers: [docs/baseline-metrics.md](docs/baseline-metrics.md) |
 | The commit guards are tested | 52 tests in [tests/hooks.test.js](tests/hooks.test.js); the guards live in [.githooks/](.githooks) |
 | Test tasks need a mutation check | Mutations of the code and the hooks were applied in scratch copies; results are in the T-003 and T-004 rows of the log |
 | CI on every pull request and push to `main` | [ci.yml](.github/workflows/ci.yml): `npm ci`, lint, tests on Node 22 |

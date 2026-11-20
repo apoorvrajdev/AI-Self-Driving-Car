@@ -20,7 +20,9 @@ const out = (/** @type {string} */ text) => process.stdout.write(`${text}\n`);
 /** @type {Map<string, any>} */
 const records = new Map();
 out(`Recording on Node ${process.version} into ${dir}\n`);
-out('| Scenario | Best distance (px) | Crashed AI cars | Surviving AI cars | Runtime for 1,000 ticks (ms) |');
+out(
+  '| Scenario | Best distance (px) | Crashed AI cars | Surviving AI cars | Runtime for 1,000 ticks (ms) |',
+);
 out('| --- | --- | --- | --- | --- |');
 for (const scenario of SCENARIOS) {
   let savedBrain;
@@ -32,9 +34,13 @@ for (const scenario of SCENARIOS) {
   records.set(scenario.name, record);
   writeFileSync(join(dir, `${scenario.name}.json`), formatFixture(record));
   const { bestDistancePx, crashedCars, survivingCars } = record.metrics;
-  out(`| \`${scenario.name}\` | ${bestDistancePx} | ${crashedCars} | ${survivingCars} | ${record.meta.recordMs} |`);
+  out(
+    `| \`${scenario.name}\` | ${bestDistancePx} | ${crashedCars} | ${survivingCars} | ${record.meta.recordMs} |`,
+  );
 }
 out('');
 for (const [name, record] of records) {
-  out(`${name}: the best car's row changed on ${changingTicks(record)} of ${record.meta.ticks} ticks`);
+  out(
+    `${name}: the best car's row changed on ${changingTicks(record)} of ${record.meta.ticks} ticks`,
+  );
 }

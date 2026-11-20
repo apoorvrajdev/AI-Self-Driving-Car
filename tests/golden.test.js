@@ -71,8 +71,13 @@ describe('golden trajectories', () => {
     expect(bytes).toBeLessThan(1_000_000);
   });
 
-  it('this test never writes a fixture (only the recorder does)', () => {
-    const source = readFileSync(new URL(import.meta.url), 'utf8');
-    expect(source).not.toMatch(/\b(write|append|rm|unlink|mkdir|rename|copyFile)[A-Za-z]*\s*\(/);
-  });
+  it.each(['../golden.test.js', './golden.js', './headless.js'])(
+    'neither the replay test nor its helpers write files (%s): only the recorder does',
+    (file) => {
+      const source = readFileSync(new URL(file, new URL('./helpers/', import.meta.url)), 'utf8');
+      expect(source).not.toMatch(
+        /\b(write|append|rm|unlink|mkdir|rename|copyFile|createWriteStream)[A-Za-z]*\s*\(/,
+      );
+    },
+  );
 });

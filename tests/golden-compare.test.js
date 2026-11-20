@@ -104,6 +104,13 @@ describe('firstMismatch', () => {
     );
   });
 
+  it('prints a container as JSON, not as [object Object], when its type changed', () => {
+    const actual = mutated((r) => (r.final.bestBrain.levels[0].weights[1] = 5));
+    expect(firstMismatch('s', makeRecord(), actual)?.message).toBe(
+      's: tick 2, best brain, field levels[0].weights[1]: expected [3,4] but got 5',
+    );
+  });
+
   it('reports the earliest difference when several exist', () => {
     const actual = mutated((r) => {
       r.final.cars[0].x = 0;

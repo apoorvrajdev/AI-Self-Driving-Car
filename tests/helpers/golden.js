@@ -27,7 +27,7 @@ export const SCENARIOS = [
 
 /** Directory of the fixtures. GOLDEN_FIXTURE_DIR points the replay test at a scratch copy. */
 export function fixtureDir() {
-  return process.env.GOLDEN_FIXTURE_DIR ?? fileURLToPath(new URL('../golden/', import.meta.url));
+  return process.env.GOLDEN_FIXTURE_DIR || fileURLToPath(new URL('../golden/', import.meta.url));
 }
 
 /**
@@ -164,6 +164,10 @@ function firstDeepDifference(expected, actual, path) {
   return expected === actual ? null : { path, expected, actual };
 }
 
+/** Text for a value in a mismatch message: containers as JSON, everything else as it is. */
+const show = (/** @type {any} */ value) =>
+  value !== null && typeof value === 'object' ? JSON.stringify(value) : String(value);
+
 /**
  * Finds the first difference between a fixture and a live record, in this order: meta, the per-tick rows
  * (by tick, then column), the final state, the metrics.
@@ -180,7 +184,7 @@ export function firstMismatch(scenario, expected, actual) {
     field,
     expected: e,
     actual: a,
-    message: `${scenario}: ${tick === null ? '' : `tick ${tick}, `}${car}, field ${field}: expected ${e} but got ${a}`,
+    message: `${scenario}: ${tick === null ? '' : `tick ${tick}, `}${car}, field ${field}: expected ${show(e)} but got ${show(a)}`,
   });
 
   for (const key of ['formatVersion', 'seed', 'ticks']) {

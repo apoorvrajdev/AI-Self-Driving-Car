@@ -51,7 +51,9 @@ Re-recording is allowed only in a task whose card says so, for one of these reas
    `sin`, `cos` and `atan2` may differ in the last bit). The log entry names both Node versions.
 
 It is never allowed to make a failing test pass. After recording, update the table above from the recorder's
-output; `tests/baseline-metrics.test.js` fails if the table and the fixtures disagree.
+output; `tests/baseline-metrics.test.js` fails if the table and the fixtures disagree. The figures in the prose
+above (the number of ticks that change, the file size, the Node version) are not checked by a test: refresh them
+by hand with the table.
 
 Two environment variables exist for checking the checker, and are unset in normal runs and in CI:
 `GOLDEN_SRC_DIR` replays against a scratch copy of `src/` (mutation checks) and `GOLDEN_FIXTURE_DIR` reads
