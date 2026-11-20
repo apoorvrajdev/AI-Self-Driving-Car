@@ -17,11 +17,11 @@ reproduced or compared. This project adds tests and determinism before it adds f
 
 | | |
 | --- | --- |
-| **Today** | The original simulation in `src/` (11 files, byte-identical to upstream), served by Vite, with 84 passing tests |
+| **Today** | The original simulation in `src/` (11 files, byte-identical to upstream), served by Vite, with 145 passing tests |
 | **Planned** | Seeded, fixed-step, headless simulation; a road graph and traffic; swappable drivers; a safety supervisor; scenario metrics |
 | **Toolchain** | Node.js 20+, Vite, Vitest, ESLint, Prettier, all exact-pinned dev dependencies; the simulation itself uses no libraries |
 | **Delivery** | Pull requests only, merged with a merge commit; `lint and test` is a required check on `main` |
-| **Results** | None recorded yet. Reference runs of the original are planned for Phase 1 (T-103) |
+| **Results** | Four reference runs of the original (1,000 ticks each) are recorded in [docs/baseline-metrics.md](docs/baseline-metrics.md) |
 
 ## Status
 
@@ -32,7 +32,7 @@ criteria and the log are in [docs/TASKS.md](docs/TASKS.md).
 | Phase | Scope | State |
 | --- | --- | --- |
 | 0 | Dev server, lint, characterization tests, commit-guard tests, CI, README and setup guide (T-000 to T-006) | Done |
-| 1 | A written walkthrough of the baseline (T-101), a headless run of the unmodified code (T-102), recorded reference runs (T-103) | T-101 done; T-102 and T-103 planned |
+| 1 | A written walkthrough of the baseline (T-101), a headless run of the unmodified code (T-102), recorded reference runs (T-103) | T-101 to T-103 done |
 | 2 | ES modules, simulation and rendering split, fixed time step, seeded RNG, golden-trajectory tests | Planned |
 | 3 | Road graph, vehicle model, traffic lights, traffic and pedestrians, scenario files | Planned |
 | 4 | Parallel headless evolution, imitation learning, ONNX in the browser | Planned |
@@ -78,12 +78,13 @@ flowchart LR
 | Practice | Evidence |
 | --- | --- |
 | The original code is kept byte-identical | SHA-256 table recorded at T-001 in [docs/TASKS.md](docs/TASKS.md); `src/**` is marked `-text` in [.gitattributes](.gitattributes) |
-| Behaviour is pinned before any change | 32 characterization tests: [utils](tests/utils.test.js) (14) and [network](tests/network.test.js) (18). Quirks are recorded, not fixed |
+| Behaviour is pinned before any change | 32 characterization tests: [utils](tests/utils.test.js) (14) and [network](tests/network.test.js) (18); 20 tests of a [headless harness](tests/headless.test.js) that runs the unmodified code. Quirks are recorded, not fixed |
+| Reference runs of the original are recorded | Four golden runs in [tests/golden/](tests/golden), replayed and compared number by number: [golden](tests/golden.test.js) (11 tests), [golden-compare](tests/golden-compare.test.js) (18), [baseline-metrics](tests/baseline-metrics.test.js) (5), [mulberry32](tests/mulberry32.test.js) (7). Numbers: [docs/baseline-metrics.md](docs/baseline-metrics.md) |
 | The commit guards are tested | 52 tests in [tests/hooks.test.js](tests/hooks.test.js); the guards live in [.githooks/](.githooks) |
 | Test tasks need a mutation check | Mutations of the code and the hooks were applied in scratch copies; results are in the T-003 and T-004 rows of the log |
 | CI on every pull request and push to `main` | [ci.yml](.github/workflows/ci.yml): `npm ci`, lint, tests on Node 22 |
 | Decisions are written down | 10 ADRs, 9 Accepted and 1 Proposed, in [docs/DECISIONS.md](docs/DECISIONS.md) |
-| Determinism before features | ADR-0008 is Accepted. Seeded randomness and a fixed time step are Phase 2 work, not done yet |
+| Determinism before features | ADR-0008 is Accepted. The test harness seeds `Math.random` so runs can be replayed; `src/` itself is still unseeded and per-frame, and the seeded RNG and fixed time step in the simulation are Phase 2 work |
 | Pull requests, merge commits, one author | ADR-0009 and ADR-0006; the history check is recorded in the log |
 
 ## Limitations
@@ -92,10 +93,13 @@ flowchart LR
   network (five sensor inputs); there is no perception, planning or safety layer.
 - Learning is manual. There is no fitness function: you save the best car's brain and reload. The "best" car is
   the one furthest up the road, whether or not it has crashed.
-- Randomness is unseeded and physics advances per rendered frame, so runs cannot be reproduced yet (Phase 2).
-- Simulation and drawing are fused, so nothing runs headless yet (Phase 1 and 2). One straight road, no lights
-  or pedestrians.
-- No numbers are published: no benchmarks, frame rates or driving-quality metrics exist yet.
+- In `src/`, randomness is unseeded and physics advances per rendered frame, so a run of the page cannot be
+  reproduced. Only the test harness replays runs, by seeding `Math.random` and calling the page's frame function
+  (Phase 2 moves this into the simulation).
+- Simulation and drawing are fused in `src/`; the harness runs them headless with stubbed canvases. One straight
+  road, no lights or pedestrians.
+- The only numbers published are the four reference runs of the original in
+  [docs/baseline-metrics.md](docs/baseline-metrics.md). No benchmarks, frame rates or driving-quality metrics exist.
 - The commit hooks are opt-in, need Node.js, and have only been used on Windows ([docs/setup.md](docs/setup.md)).
 - `npm install` reports moderate audit findings in dev-only ESLint packages; `npm audit --omit=dev` reports none.
 
@@ -103,7 +107,7 @@ flowchart LR
 
 ```text
 src/                    simulation code (the original files, unchanged for now)
-tests/                  characterization tests, commit-guard tests, a loader for the legacy scripts
+tests/                  characterization, headless-harness, golden-trajectory and commit-guard tests; helpers for loading and running the legacy scripts; golden fixtures in tests/golden/
 docs/                   architecture, decisions, tasks, setup
 .githooks/              commit guards (see docs/setup.md)
 .github/workflows/      continuous integration
