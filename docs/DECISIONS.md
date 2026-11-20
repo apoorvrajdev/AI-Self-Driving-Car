@@ -18,7 +18,7 @@ Accepted decisions change only through a new ADR.
 | [0009](#adr-0009) | Pull-request delivery flow | Accepted | 2026-11-07 |
 | [0010](#adr-0010) | Golden trajectories: exact comparison, deliberate re-recording | Accepted | 2026-11-09 |
 | [0011](#adr-0011) | Freeze the baseline in `baseline/` and restructure `src/` in place | Accepted | 2026-11-20 |
-| [0012](#adr-0012) | One fixed tick and one explicit seeded generator | Proposed | 2026-11-20 |
+| [0012](#adr-0012) | One fixed tick and one explicit seeded generator | Accepted | 2026-11-20 |
 
 ---
 
@@ -231,7 +231,7 @@ Accepted decisions change only through a new ADR.
 
 ## ADR-0012
 
-**One fixed tick and one explicit seeded generator** · Proposed · 2026-11-20
+**One fixed tick and one explicit seeded generator** · Accepted · 2026-11-20
 
 - **Context:**
   - The baseline advances its physics once per `requestAnimationFrame` callback. Those callbacks follow the
@@ -257,7 +257,7 @@ Accepted decisions change only through a new ADR.
   - (c) `world.step()` advances exactly one tick of 1/60 s. Quantities stay per tick, with units in their names
     (`speedPxPerTick`). The browser runs whole ticks from elapsed real time, in Fiedler's manner, and draws
     once per frame.
-- **Decision (proposed):** (c).
+- **Decision:** (c). Accepted by the owner on 2026-11-20.
   - **Interface:** `createWorld({ seed, savedBrain })`; `world.step()` advances one tick and returns nothing;
     `world.state()` returns a plain snapshot. ARCHITECTURE §4 changes from `world.step(dtSeconds)` to
     `world.step()`. A named constant `TICK_SECONDS = 1/60` serves anything that needs real time.
