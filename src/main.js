@@ -1,3 +1,9 @@
+import { Road } from './road.js';
+import { Car } from './car.js';
+import { NeuralNetwork } from './network.js';
+import { getRandomColor } from './utils.js';
+import { Visualizer } from './visualizer.js';
+
 const carCanvas = document.getElementById('carCanvas');
 carCanvas.width = 200;
 const networkCanvas = document.getElementById('networkCanvas');
@@ -9,8 +15,8 @@ const networkCtx = networkCanvas.getContext('2d');
 const road = new Road(carCanvas.width / 2, carCanvas.width * 0.9);
 
 const N = 100;
-const cars = generateCars(N);
-let bestCar = cars[0];
+export const cars = generateCars(N);
+export let bestCar = cars[0];
 if (localStorage.getItem('bestBrain')) {
   for (let i = 0; i < cars.length; i++) {
     cars[i].brain = JSON.parse(localStorage.getItem('bestBrain'));
@@ -20,7 +26,7 @@ if (localStorage.getItem('bestBrain')) {
   }
 }
 
-const traffic = [
+export const traffic = [
   new Car(road.getLaneCenter(1), -100, 30, 50, 'DUMMY', 2, getRandomColor()),
   new Car(road.getLaneCenter(0), -300, 30, 50, 'DUMMY', 2, getRandomColor()),
   new Car(road.getLaneCenter(2), -300, 30, 50, 'DUMMY', 2, getRandomColor()),
@@ -30,13 +36,16 @@ const traffic = [
   new Car(road.getLaneCenter(2), -700, 30, 50, 'DUMMY', 2, getRandomColor()),
 ];
 
+document.getElementById('saveButton').addEventListener('click', save);
+document.getElementById('discardButton').addEventListener('click', discard);
+
 animate();
 
-function save() {
+export function save() {
   localStorage.setItem('bestBrain', JSON.stringify(bestCar.brain));
 }
 
-function discard() {
+export function discard() {
   localStorage.removeItem('bestBrain');
 }
 
