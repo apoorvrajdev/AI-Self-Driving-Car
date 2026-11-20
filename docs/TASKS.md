@@ -10,7 +10,25 @@ A task becomes `done` in the pull request that delivers it (the status is set in
 takes effect when the pull request merges).
 `in-progress` and `review` exist only on the task branch; `main` shows `todo`, `blocked` or `done`.
 
-## Current phase: 1 — Understand and measure the baseline
+## Current phase: 2 — Restructure without changing behaviour
+
+Turn the baseline into ES modules with a DOM-free simulation core, one seeded generator passed in explicitly,
+a fixed tick and a headless runner. The restructured code must reproduce the golden fixtures exactly after every
+commit (ADR-0008, ADR-0010, ADR-0011, ADR-0012). No new driving features.
+
+**Gate (owner signs off):**
+
+- [ ] `baseline/` holds the 11 original files, and a test checks them against the T-001 hash table
+- [ ] `src/` is ES modules; no file in `src/sim/` uses the DOM or `Math.random`, enforced by lint and a test
+- [ ] The golden replay passes against the restructured core (`createWorld`), not only against `baseline/`,
+      locally (Windows, Node 24) and in CI (Linux, Node 22)
+- [ ] The page runs 60 ticks per second whatever the display rate, and `/?seed=1&ticks=1001` shows the
+      `seed-1` metrics (OWNER-CHECK)
+- [ ] `npm run sim` reproduces the metrics of all four golden scenarios; its runtime is recorded
+- [ ] Every test task passed a mutation check
+- [ ] ARCHITECTURE.md describes the Phase 2 structure; ADR-0011 and ADR-0012 accepted or revised
+
+## Phase 1 — Understand and measure the baseline
 
 Explain the original simulation, run it headless and unchanged, and record reference runs that the Phase 2
 restructure must reproduce (ADR-0008, ADR-0010). `src/` stays byte-identical throughout.
@@ -38,7 +56,7 @@ restructure must reproduce (ADR-0008, ADR-0010). `src/` stays byte-identical thr
 ## Board
 
 Phase 0 gate: signed by the owner on 2026-11-09. Phase 1 gate: signed by the owner on 2026-11-20 (T-101 to
-T-103 are done). Phase 2 has no task cards yet; it is planned next (`/plan-phase`).
+T-103 are done). Phase 2 is planned as T-201 to T-206, with ADR-0011 and ADR-0012 proposed.
 
 `main` is protected by the `protect-main` ruleset: `lint and test` is a required check, so a pull request
 cannot merge until it is green.
@@ -55,6 +73,12 @@ cannot merge until it is green.
 | T-101 | Baseline walkthrough document | 1 | done | T-001 |
 | T-102 | Headless harness for the unmodified baseline | 1 | done | T-003 |
 | T-103 | Baseline metrics and golden trajectories | 1 | done | T-102 |
+| T-201 | Freeze the baseline in `baseline/` | 2 | todo | T-103 |
+| T-202 | ES modules, behaviour unchanged | 2 | todo | T-201 |
+| T-203 | One seeded generator, passed in explicitly | 2 | todo | T-202 |
+| T-204 | DOM-free simulation core and render layer | 2 | todo | T-203 |
+| T-205 | Fixed time step in the browser | 2 | todo | T-204 |
+| T-206 | Headless runner | 2 | todo | T-204 |
 
 ---
 
@@ -351,11 +375,326 @@ cannot merge until it is green.
 
 ---
 
+### T-201 — Freeze the baseline in `baseline/`
+
+- **Status:** todo · **Phase 2**
+- **Goal:** Keep a byte-identical copy of the 11 original files in `baseline/`, so the harness, the
+  characterization tests, the recorder and the walkthrough keep a fixed reference while `src/` is restructured
+  (ADR-0011).
+- **Context:** ADR-0010, ADR-0011, the T-001 hash table, `.gitattributes`, `tests/helpers/headless.js`,
+  `tests/headless.test.js` (reads `src/` directly), `tests/helpers/loadLegacy.js`, `tests/golden/record.mjs`,
+  `tests/golden.test.js` (`GOLDEN_SRC_DIR`),
+  `eslint.config.js`, `.prettierignore`, `vite.config.js`, `package.json`, `NOTICE.md`, `README.md`,
+  `docs/setup.md`, `docs/baseline-walkthrough.md`, ARCHITECTURE §5.
+- **Deliverables:**
+  - `.gitattributes`: add `baseline/** -text`. Owner-managed: the owner approves the line in the session. It is
+    its own commit and comes before the files, because `* text=auto` would otherwise store them with LF.
+  - `baseline/`: the 11 files of `reference/self-driving-car/9. Fine-tuning/`, copied, not retyped. The same
+    commit makes `eslint.config.js` and `.prettierignore` ignore `baseline/**`; otherwise `eslint .` would lint
+    the classic scripts and fail on the UTF-16 `visualizer.js`.
+  - The headless harness, `loadLegacy`, the recorder and the golden replay load from `baseline/` by default,
+    named by one exported constant. `srcDir` and `GOLDEN_SRC_DIR` keep working for scratch copies.
+  - `tests/headless.test.js` reads `baseline/` instead of `src/` (its hash, byte-order-mark, script-order and
+    traffic-position tests), so later changes to `src/` cannot break it.
+  - Its hash test moves to `tests/baseline-hashes.test.js` and also checks that `baseline/` holds exactly the 11
+    files. The T-001 table stays in one place in the tests, not two.
+  - The npm script `dev:baseline` serves `baseline/` with Vite; the UTF-16 plugin in `vite.config.js` stays
+    for it.
+  - `docs/baseline-walkthrough.md`: every `src/<file>:<line>` reference becomes `baseline/<file>:<line>`. The
+    line numbers stay, because the files are identical.
+  - `NOTICE.md` (where the unmodified copy lives; `src/` is derived and will change), `README.md`,
+    `docs/setup.md`, ARCHITECTURE status line and §5 (`baseline/` row).
+- **Acceptance criteria:**
+  1. All 11 files in `baseline/` have the size and SHA-256 of the T-001 table, checked by the new test. `src/`
+     is not changed by this task, and its hashes still equal the table.
+  2. `git ls-files --eol baseline/` shows the 9 files other than `car.png` and `visualizer.js` as `i/crlf`, and
+     those two as `i/-text`, as for `src/` today, so a fresh clone gets the same bytes.
+  3. Every existing test still passes, and the harness, the characterization tests and the replay demonstrably
+     read `baseline/`: in a scratch copy of the repository, changing `friction` in `src/car.js` leaves
+     `npm test` green, and the same change in `baseline/car.js` fails the replay and the hash test.
+  4. The T-101 reference check is re-run against `baseline/` with no mismatch, and no `src/<file>:<line>`
+     reference remains in the walkthrough.
+  5. `npm run dev:baseline` serves the original page: `/`, `/visualizer.js` and `/main.js` return 200
+     (verifier), and the owner sees the same page as with `npm run dev` (OWNER-CHECK).
+  6. Mutation check: the hash test fails for a one-byte change, a missing file and an extra file, each in a
+     scratch copy of `baseline/`.
+- **Verification:** `npm run check` green; the hash output; `git ls-files --eol`; the scratch-copy results for
+  criteria 3 and 6; the reference-check script output.
+- **Branch and commits:** `chore/t-201-freeze-baseline`; `chore(git): store baseline/ byte for byte`,
+  `chore(baseline): freeze a copy of the original in baseline/` (with the lint and Prettier ignores),
+  `test(baseline): load the baseline from baseline/ and check its hashes`, `build(dev): serve the frozen
+  baseline`, `docs(baseline): point the references at baseline/`, `docs(tasks): complete T-201`.
+- **Size:** about 40 lines of test and 30 of helper, config and script changes, plus the walkthrough path edits;
+  the 11 copied files are not counted.
+
+### T-202 — ES modules, behaviour unchanged
+
+- **Status:** todo · **Phase 2**
+- **Goal:** `src/` becomes ES modules served by Vite, formatted and linted like the rest of the repository, and
+  still reproduces every golden fixture exactly.
+- **Context:** `src/*.js`, `src/index.html`, `baseline/` (T-201), `tests/helpers/headless.js`,
+  `tests/helpers/golden.js`, `tests/golden.test.js`, `tests/helpers/loadLegacy.js`, `tests/utils.test.js`,
+  `tests/network.test.js`, `eslint.config.js`, `.prettierignore`, `.gitattributes`, `vite.config.js`,
+  ADR-0010, ADR-0011, the Vitest 4 notes in the Log (2026-11-20, Phase 2 planning).
+- **Deliverables:**
+  - First commit: `src/visualizer.js` is re-encoded from UTF-16LE with a byte-order mark to UTF-8 without one,
+    keeping its four arrow characters. Prettier and `espree` read UTF-8 only, so this comes before formatting.
+  - Second commit, mechanical: Prettier formats `src/*.js` with LF line endings, and `.prettierignore` stops
+    excluding `src/`. Nothing else changes. Before each of these two commits, the replay runs against the
+    classic scripts in `src/` (`GOLDEN_SRC_DIR=src`) and passes.
+  - Third commit: `.gitattributes` drops `src/** -text`, so new files in `src/` are normalised like the rest of
+    the repository. Owner-managed: the owner approves it in the session. It comes after formatting, so no file
+    is renormalised.
+  - `src/` modules:
+    - Every file exports its classes and functions and imports what it uses; no implicit globals.
+    - `index.html` loads one `<script type="module" src="main.js">`. The save and discard buttons are wired
+      with `addEventListener`, because the inline `onclick` needs globals.
+    - Statements and arithmetic are otherwise unchanged. `main.js` still runs at import, as the page does, and
+      exports `cars`, `traffic`, `bestCar`, `save` and `discard`.
+  - `tests/helpers/moduleSim.js`, a bridge that T-204 removes:
+    - Imports `src/main.js` afresh for each run: `vi.resetModules()`, then a dynamic import, which the Vitest 4
+      docs say re-evaluates the module. An optional `srcDir` loads a scratch copy.
+    - Stubs `document`, `window`, `localStorage`, `Image` and `requestAnimationFrame` with `vi.stubGlobal`, and
+      replaces `Math.random` with `makeSeededRandom(seed)` through `vi.spyOn`. Everything is restored after
+      each run.
+    - Offers the same `step`, `state`, `brains`, `save` and `discard` as `createBaselineSim`. `bestCar` is read
+      through its export, a live binding.
+  - The golden replay runs each scenario against `baseline/`, as now, and against `src/` through the bridge.
+  - `tests/utils.test.js` and `tests/network.test.js` run every case against both `baseline/` (vm) and the
+    `src/` modules, with `Math.random` stubbed and restored for the modules. A new case pins the start point
+    lying on the other segment (offset exactly 0), for example `getIntersection({x:0,y:0}, {x:10,y:0},
+    {x:0,y:-5}, {x:0,y:5})` gives offset 0, against both implementations.
+  - `eslint.config.js` lints `src/**` with browser globals. A lint finding is fixed without changing
+    behaviour, or listed for the owner.
+  - `vite.config.js`: the UTF-16 plugin's comment says it is needed only for `baseline/`. `docs/setup.md`,
+    `README.md` and the ARCHITECTURE status line are updated.
+- **Acceptance criteria:**
+  1. The formatting commit changes formatting only: a throwaway script parses each file before and after with
+     `espree` (already installed with ESLint, not added to `package.json`), and the syntax trees are equal once
+     positions and raw literal text are dropped. The replay against the formatted classic scripts is green.
+  2. `index.html` loads exactly one module script; every `src/*.js` file uses `import` or `export` and passes
+     `npm run lint`.
+  3. The replay of all four scenarios is green against `src/` through the bridge and against `baseline/`,
+     locally (Windows, Node 24) and in CI (Linux, Node 22).
+  4. The utils and network characterization cases pass against both implementations.
+  5. The bridge leaves the host as it found it: after a run, `Math.random` is the original function, and
+     `document`, `window`, `localStorage`, `Image` and `requestAnimationFrame` are undefined again (test).
+  6. `src/visualizer.js` is UTF-8 without a byte-order mark. After the re-encoding commit and before
+     formatting, its text equals the decoded UTF-16 original exactly; after formatting, criterion 1 applies.
+  7. Mutation check on scratch copies of `src/`: `friction` 0.0500001, ray count 4, `mutate` amount 0.11 in
+     `main.js`, traffic not updated, and `getIntersection` with `t>0` instead of `t>=0`. Each makes the `src/`
+     replay or a characterization case fail.
+  8. `npm run dev` shows the same page as `npm run dev:baseline`. Save, then reload, keeps car 0's brain and
+     mutates the others; discard removes it (OWNER-CHECK).
+- **Verification:** `npm run check` green; `gh pr checks` green; the syntax-tree comparison output; the
+  mutation table; the encoding check.
+- **Branch and commits:** `refactor/t-202-es-modules`; `chore(src): store visualizer.js as UTF-8`,
+  `style(src): format the baseline code with Prettier`,
+  `chore(git): normalise line endings in src/`, `refactor(src): convert the simulation to ES modules`,
+  `test(golden): replay the golden runs against the src/ modules`, `build(lint): lint src/`,
+  `docs: describe the module structure`, `docs(tasks): complete T-202`.
+- **Size:** about 60 lines of module wiring, 120 of bridge and test changes and 20 of config; the Prettier
+  commit is mechanical and not counted.
+
+### T-203 — One seeded generator, passed in explicitly
+
+- **Status:** todo · **Phase 2**
+- **Goal:** All randomness in `src/` comes from one generator created from a seed and passed in explicitly. The
+  page takes `?seed=`, so a run can be repeated (ADR-0008, ADR-0012).
+- **Context:** `src/network.js`, `src/utils.js`, `src/car.js`, `src/main.js`, `tests/helpers/loadLegacy.js`
+  (`makeSeededRandom`), `tests/mulberry32.test.js`, `tests/helpers/moduleSim.js`, `NOTICE.md`, ADR-0012.
+- **Deliverables:**
+  - `src/sim/rng.js` (`// @ts-check`, JSDoc), the first file of the core:
+    - `createRng(seed)` returns a function giving numbers in [0, 1): Mulberry32 from the CC0 C original, the
+      same algorithm as `makeSeededRandom`.
+    - `parseSeed(text)` returns an integer from 0 to 4294967295 written in decimal digits, or null otherwise.
+  - `NeuralNetwork`, `Level`, `NeuralNetwork.mutate` and `getRandomColor` take the generator as an argument,
+    and `Car` passes it to its brain. The draw order stays the baseline's: brains in car order (each level's
+    weights row by row, then its biases), then the mutation of cars 1 to 99 when a brain is saved, then the
+    seven traffic colours.
+  - `main.js` takes the seed from `?seed=`, or else a random 32-bit seed from `crypto.getRandomValues`, and
+    logs it to the console (the HUD comes in T-205).
+  - The bridge passes the seed through a stubbed `location` instead of replacing `Math.random`, and spies on
+    `Math.random` to prove it is never called.
+  - The module side of the characterization tests passes a seeded or sequence generator.
+  - `NOTICE.md`: `src/sim/rng.js` is CC0 1.0, from the same source as the test helper.
+- **Acceptance criteria:**
+  1. No `Math.random` anywhere in `src/` (a test scans the files), and the bridge's spy records zero calls in
+     all four scenarios.
+  2. The replay of all four scenarios is green against `src/` and `baseline/`, locally and in CI.
+  3. `createRng` returns exactly the same numbers as `makeSeededRandom` for seeds 0, 1, 2, 3, 7 and 4294967295,
+     the first 10,000 outputs each.
+  4. `parseSeed` accepts `0`, `1` and `4294967295`, and rejects `''`, `-1`, `4294967296`, `1.5`, `1e3`, `abc`
+     and `1` with a leading space, each covered by a test.
+  5. The same seed gives identical brains and traffic colours; seeds 1 and 2 give different ones.
+  6. Mutation check: a changed constant in `createRng`, mutation drawing weights before biases, colours drawn
+     before brains, the generator not passed to one level, and `parseSeed` accepting a negative number. Each
+     is caught.
+  7. Opening `/?seed=1` twice shows the same traffic colours and the same car movement (OWNER-CHECK).
+- **Verification:** `npm run check` green; `gh pr checks` green; the equivalence output for criterion 3; the
+  mutation table.
+- **Branch and commits:** `refactor/t-203-seeded-rng`; `feat(sim): add the seeded generator and seed parsing`,
+  `refactor(src): pass the generator to every random draw`, `docs(notice): record the CC0 source of
+  src/sim/rng.js`, `docs(tasks): complete T-203`.
+- **Size:** about 60 lines of source and 120 of tests.
+
+### T-204 — DOM-free simulation core and render layer
+
+- **Status:** todo · **Phase 2**
+- **Goal:** Split the simulation from the drawing. `src/sim/` holds the world state and its one-tick update
+  with no DOM access; `src/render/` draws a world without changing it; `src/app/` is the browser entry. The
+  golden replay runs against the core directly, with no stubs (ADR-0007, ADR-0012).
+- **Context:** `src/` after T-203, ARCHITECTURE §3 to §6, ADR-0010, ADR-0012, `tests/helpers/moduleSim.js`,
+  `tests/helpers/golden.js`, `tests/golden.test.js`, `docs/baseline-walkthrough.md` (frame loop),
+  `eslint.config.js`.
+- **Deliverables:**
+  - `src/sim/` (`// @ts-check`, JSDoc on every export):
+    - `world.js`: `createWorld({ seed, savedBrain })` returns `step()`, `state()`, `tick`, and read access for
+      the renderer. One `step()` does what `animate` does before drawing: update the traffic cars, update the
+      AI cars, then select the best car (the first car with the smallest `y`).
+    - `car.js` (movement, polygon, damage, sensor and brain update), `sensor.js` (rays and readings), `road.js`
+      (lane centres and borders), `network.js`, `geometry.js` (`lerp`, `getIntersection`, `polysIntersect`),
+      `controls.js` (the four flags; `DUMMY` drives forward), `rng.js` (T-203).
+    - Names carry units (`speedPxPerTick`, `maxSpeedPxPerTick`, `accelerationPxPerTick2`,
+      `frictionPxPerTick2`, `angleRad`, `rayLengthPx`). The arithmetic and its order are unchanged (ADR-0010).
+    - Brains keep the baseline shape (`levels` of `inputs`, `outputs`, `biases` and `weights`), so brains
+      saved by the original page still load and the fixture comparison of `bestBrain` holds.
+    - A traffic car keeps its colour as data; the core has no `Image`, canvas or mask.
+  - `src/render/`: road, cars (the renderer caches one mask canvas per car), sensor rays, `visualizer.js` and
+    `getRGBA`. Rendering reads the state and never writes it.
+  - `src/app/main.js`: creates the world, the renderer and the save and discard buttons (`localStorage` key
+    `bestBrain`, as before), and runs one `step()` and one draw per animation frame, as now; the fixed time
+    step is T-205. Keyboard driving (`KEYS`, unused by the page, as in the baseline) moves to
+    `src/app/keyboard.js`. `index.html` loads `app/main.js`.
+  - The golden replay calls `createWorld` directly. Fixture tick n is world tick n + 1 (ADR-0012), and a small
+    adapter maps the unit-named fields to the fixture's `x`, `y`, `angle`, `speed` and `damaged`. The flat
+    files of T-202 and the bridge `tests/helpers/moduleSim.js` are deleted (planned removals).
+  - The characterization cases run against `baseline/` and `src/sim/`.
+  - `eslint.config.js`: `src/sim/**` has no browser globals and forbids `Math.random`
+    (`no-restricted-properties`).
+  - ARCHITECTURE §2 (the baseline now lives in `baseline/`), §4 (as in ADR-0012), §5 (the final `src/`
+    layout) and §6 (units); the README project tree.
+- **Acceptance criteria:**
+  1. The replay of all four scenarios is green against `createWorld` and against `baseline/`, locally and in
+     CI, with no global stubbed on the `src/` side.
+  2. The core is DOM-free: `src/sim/world.js` imports and runs in Node with no stubs; on a scratch copy,
+     `npm run lint` fails when a file in `src/sim/` uses `document`, `window`, `localStorage`, `Image`,
+     `requestAnimationFrame` or `Math.random`; no file in `src/sim/` imports from `src/render/` or `src/app/`.
+  3. Rendering never changes the state: drawing every tick of a 200-tick run on a stub context leaves
+     `state()` equal, value by value, to the same run without drawing.
+  4. A brain saved by the baseline harness (`save()` on `baseline/`) loads into `createWorld` as car 0's brain
+     unchanged, and a brain saved from the world has the same keys and shape.
+  5. Mutation check: at least six mutants on scratch copies of `src/sim/` (friction; ray count; traffic not
+     updated; the last car with the smallest `y` chosen instead of the first; the sensor keeping the farthest
+     touch; AI cars updated before traffic), each failing the replay; and two mutants in `src/render/` that
+     write to the state, each caught by the test of criterion 3.
+  6. `npm run dev` shows the same page as `npm run dev:baseline`, and save and discard work as before
+     (OWNER-CHECK).
+- **Verification:** `npm run check` green; `gh pr checks` green; the mutation table; the lint-failure output.
+  If the plan estimates more than 400 hand-written lines, the render layer and app move to a separate card
+  before implementing, and the plan is shown to the owner.
+- **Branch and commits:** `refactor/t-204-sim-render-split`; `refactor(sim): extract the DOM-free simulation
+  core` (with its replay and characterization cases), `refactor(app): draw and run the page from the world`
+  (render layer, app, `index.html`; removes the flat files and the bridge), `build(lint): keep the DOM and
+  Math.random out of src/sim/`, `docs(architecture): describe the Phase 2 layout`, `docs(tasks): complete
+  T-204`. Every commit leaves `npm run check` green.
+- **Size:** about 350 hand-written lines; most of the core is moved code.
+
+### T-205 — Fixed time step in the browser
+
+- **Status:** todo · **Phase 2**
+- **Goal:** The page advances the world at 60 ticks per second of real time whatever the display's refresh
+  rate, draws once per frame, and can be pinned to a seed and paused at a tick, so a browser run can be checked
+  against a headless one (ADR-0012).
+- **Context:** `src/app/main.js`, `src/sim/world.js`, ADR-0012, the research notes in the Log (2026-11-20,
+  Phase 2 planning: Fiedler 2004; MDN `requestAnimationFrame`; WHATWG HTML §8.1.7.3).
+- **Deliverables:**
+  - `src/app/loop.js` (`// @ts-check`, pure, no DOM), a fixed-step scheduler written from the idea in "Fix Your
+    Timestep!" (the article's snippets carry no licence, so none are copied):
+    - given each frame's timestamp, it returns how many ticks to run; one tick is 1000/60 ms; the first frame
+      only sets the time origin and runs no tick
+    - elapsed time per frame is clamped to 250 ms, so a frame runs at most 15 ticks; time beyond the clamp is
+      dropped, not caught up later. The first frame after a hidden tab (where `requestAnimationFrame` pauses)
+      therefore runs 15 ticks, not thousands
+    - the remainder below one tick carries over. Ticks are counted from the time origin (moved forward by any
+      dropped time), not by summing frame times, so long runs do not drift. Compute them as
+      `elapsedMs * 60 / 1000`, not `elapsedMs / (1000 / 60)`: in doubles `250 / (1000 / 60)` is
+      14.999999999999998, while `250 * 60 / 1000` is exactly 15
+  - `src/app/main.js` uses it and draws the latest state, without interpolation.
+  - A HUD on the page: seed, world tick, best distance in px (100 − the best car's `y`), crashed and surviving
+    cars, ticks per second over the last second, and whether a saved brain was loaded.
+  - URL parameters `seed` (T-203) and `ticks` (pause when the world reaches that tick); an invalid value is
+    ignored with a console warning. Parsing is a pure, tested function.
+- **Acceptance criteria:**
+  1. Scheduler tests with simulated timestamps, frame k at (k × 1000) / rate ms, frame 0 being the origin:
+     - over 10 simulated seconds, rates of 30, 60, 120 and 144 Hz each give exactly 600 ticks
+     - a 5-second gap gives 15 ticks in that frame, and the frames after it run at the normal rate (no catch-up)
+     - no frame runs more than 15 ticks
+     - frames 10 ms apart carry the remainder: they run 0 or 1 tick each, and 60 in 1,000 ms
+  2. On the owner's display the HUD shows about 60 ticks per second; the owner notes the display's refresh
+     rate (OWNER-CHECK).
+  3. With no saved brain, `/?seed=1&ticks=1001` pauses at world tick 1001 and the HUD shows best distance
+     2042.95, 24 crashed and 76 surviving, the `seed-1` fixture metrics (OWNER-CHECK). A test runs
+     `createWorld` to tick 1001 and checks the same numbers.
+  4. URL parsing tests cover valid and invalid `seed` and `ticks` values.
+  5. Mutation check: at least five mutants in `loop.js` (no clamp; clamped time caught up later instead of
+     dropped; the remainder dropped; the tick boundary off by one, for example `ceil` for `floor` or `>` for
+     `>=`; the tick length wrong), each caught.
+- **Verification:** `npm run check` green; `gh pr checks` green; the mutation table; the owner's HUD readings.
+- **Branch and commits:** `feat/t-205-fixed-timestep`; `feat(app): add the fixed-step scheduler`,
+  `feat(app): run the page at a fixed 60 ticks per second`, `feat(app): show a HUD and accept seed and tick
+  parameters`, `docs(tasks): complete T-205`.
+- **Size:** about 60 lines of scheduler, 80 of app and HUD, and 120 of tests.
+
+### T-206 — Headless runner
+
+- **Status:** todo · **Phase 2**
+- **Goal:** `npm run sim` runs the core in Node, without a browser or a test harness, prints metrics as JSON,
+  and loads and saves brains, so experiments (and Phase 4 training) can run faster than real time.
+- **Context:** `src/sim/world.js`, `tests/helpers/golden.js` (`parseMetricsTable`),
+  `tests/baseline-metrics.test.js`, `tests/hooks.test.js` (child-process pattern), `docs/baseline-metrics.md`,
+  `eslint.config.js`, `package.json`, ADR-0012, ARCHITECTURE §5.
+- **Deliverables:**
+  - `tools/sim.mjs` (`// @ts-check`) and the npm script `sim`:
+    - options: `--seed <n>` (default 1); `--ticks <n>` world ticks (default 1000; a golden run is 1,001 world
+      ticks, ADR-0012); `--brain <file>` (a saved brain, the page's `bestBrain` JSON); `--save-brain <file>`
+      (the best brain at the end); `--help`
+    - output: one JSON line with `seed`, `ticks`, `bestDistancePx`, `crashedCars`, `survivingCars`,
+      `runtimeMs`, `ticksPerSecond` and `node`
+    - bad arguments print the usage and exit with code 2; argument parsing is a pure, tested function
+  - `tests/sim-cli.test.js`: child-process runs (`spawnSync`, no shell). Brain files are written only to a
+    temporary directory, never to `tests/golden/`.
+  - `docs/baseline-metrics.md`: a second table with the runner's runtime per scenario beside the harness
+    runtime, measured, with no threshold. `parseMetricsTable` in `tests/helpers/golden.js` reads every row
+    that starts with ``| ` `` and has five cells, so the new table's rows must not start that way, or the
+    parser and `tests/baseline-metrics.test.js` are updated in the same commit.
+  - `eslint.config.js`: a block for `tools/**` with Node globals.
+  - ARCHITECTURE §5 lists `tools/`; the README commands table lists `npm run sim`.
+- **Acceptance criteria:**
+  1. For `seed-1`, `seed-2` and `seed-3`, `--ticks 1001` prints the fixture's `bestDistancePx`, `crashedCars`
+     and `survivingCars` exactly.
+  2. `--seed 1 --ticks 1001 --save-brain <tmp>` writes a brain equal to the `seed-1` fixture's `bestBrain`, and
+     `--seed 4 --ticks 1001 --brain <that file>` prints the `seed-4-gen2` metrics: the original learning loop,
+     run headless.
+  3. Two runs with the same arguments print identical JSON apart from `runtimeMs` and `ticksPerSecond`.
+  4. An unknown option, a missing value, a seed or tick count that is not an integer in range, and a missing or
+     malformed brain file each exit with code 2 and a message naming the problem; `--help` exits with 0.
+  5. The runtime of each scenario is measured and recorded in `docs/baseline-metrics.md` and the Log, next to
+     the harness runtime, with no threshold.
+  6. Mutation check: at least five mutants (the seed ignored; one tick too many or too few; the brain not
+     loaded; crashed and surviving swapped; exit code 0 on bad arguments), each caught.
+- **Verification:** `npm run check` green; `gh pr checks` green; the CLI outputs for criteria 1 to 3; the
+  mutation table.
+- **Branch and commits:** `feat/t-206-headless-runner`; `feat(tools): add the headless runner`,
+  `docs(metrics): record the runner runtime`, `docs(tasks): complete T-206`.
+- **Size:** about 120 lines of runner, 120 of tests and 20 of docs.
+
+---
+
 ## Later phases (broken into tasks at each gate)
 
 | Phase | Epic |
 | --- | --- |
-| 2 | ES modules, simulation/render split, fixed time step, seeded RNG, headless runner, golden-trajectory tests |
 | 3 | virtual-world road graph, kinematic bicycle model, traffic lights, IDM/MOBIL traffic, pedestrians, scenario files |
 | 4 | Parallel headless evolution with real fitness; imitation learning in PyTorch; ONNX in the browser |
 | 5 | Synthetic camera, detector, light classifier, tracking, prediction, planner, safety supervisor, control |
@@ -397,6 +736,7 @@ cannot merge until it is green.
 | 2026-11-20 | T-103 | Decisions and scope: the replay test moved into the fixtures commit so every commit passes `npm run check` (the card had it one commit earlier); added beyond the card, with approval: `tests/helpers/golden.js`, `tests/golden-compare.test.js`, `tests/baseline-metrics.test.js`, an optional `srcDir` in `createBaselineSim`, the test-only variables `GOLDEN_SRC_DIR` and `GOLDEN_FIXTURE_DIR`, `tests/golden/*.json` in `.prettierignore`; one metrics table with a row per scenario; README lines 20, 24, 35, 81 to 82, 86, 95 to 98 and 106 corrected factually. ADR-0010 stays Proposed: the owner accepts it in a separate pull request now that CI confirmed the match | `docs/baseline-metrics.md`; `README.md` |
 | 2026-11-20 | — | ADR-0010 accepted by the owner: the Windows/Node 24 fixtures matched the Linux/Node 22 CI replay, so the assumption held and ADR-0008's revisit note is not triggered. A revisit note covers the V8 maths-library risk (a future Node major with LLVM libm) | `docs/DECISIONS.md`; CI run 44764311470 |
 | 2026-11-20 | — | Phase 1 gate signed by the owner: all six gate boxes ticked, none left open. Evidence for the boxes ticked in this change: (2) `src/` SHA-256 of all 11 files compared with the T-001 table just now, all equal; the headless harness (T-102) and the replay (T-103) run the unmodified `src/`. (3) Log entry of T-103: replay green on Windows/Node 24.12.0 and in CI on Linux/Node 22.23.4 (run 44764311470); `lint and test` green on `main` after #15. (4) `docs/baseline-metrics.md` has distance, crashed and surviving cars and runtime for `seed-1`, `seed-2`, `seed-3`, `seed-4-gen2`. (5) Mutation checks are in the Log for every task that added tests (T-003, T-004, T-102, T-103); T-002 (tooling, no tests of its own), T-005 (CI), T-006 and T-101 (documents) added none. Survivors recorded in the Log: the T-102 swap of `network.js` and `sensor.js` (equivalent) and the T-103 `>` to `>=` in `feedForward` (not proven equivalent in general); the T-004 entry says only that none of the required mutations survived, so any other survivors there are not listed | Log entries above; hash comparison and `gh run list` run read-only |
+| 2026-11-20 | — | Phase 2 planned: T-201 to T-206 written out with criteria, verification and commits; Phase 2 gate added; ADR-0011 (frozen copy in `baseline/`) and ADR-0012 (one fixed tick, one explicit seeded generator) proposed. Research, all sources opened 2026-11-20: Glenn Fiedler, "Fix Your Timestep!" (2004-06-10): accumulator, frame time clamped to 0.25 s against the "spiral of death", optional interpolation; no licence on its snippets. MDN `requestAnimationFrame` (last modified 2026-08-21): callbacks follow the display refresh rate, an animation that ignores the timestamp "will run faster on high refresh-rate screens", callbacks pause in background tabs; WHATWG HTML §8.1.7.3. Mulberry32: 32-bit state, period 2^32; its author noted on 2022-11-10 that it cannot produce about a third of all 32-bit values; one run draws at most 12,743 numbers. Vitest 4.1.12 docs: `vi.resetModules()` then a dynamic import re-evaluates the module; `vi.unstubAllGlobals` restores `vi.stubGlobal`; `mockRestore` restores a `vi.spyOn`; `isolate` defaults to true with the `forks` pool | ADR-0011 and ADR-0012 in `docs/DECISIONS.md`; planning pull request awaiting owner approval |
 
 ### Baseline hash table (T-001, upstream commit `8b87236`)
 
