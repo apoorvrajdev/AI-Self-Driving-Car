@@ -31,7 +31,11 @@ npm run dev
 ```
 
 Vite serves `src/` and prints the address, normally http://localhost:5173. The page shows the road, the traffic,
-the sensor rays and the network panel. Stop the server with Ctrl+C.
+the sensor rays and the network panel. The save and discard buttons store and remove the best car's brain in
+`localStorage`. Stop the server with Ctrl+C.
+
+`src/` is ES modules: `index.html` loads one `<script type="module" src="main.js">`, and `main.js` imports the
+other files and wires the two buttons with `addEventListener`.
 
 To see the original page, served from the frozen copy in `baseline/` that stays unchanged while `src/` is
 restructured, run:
@@ -40,8 +44,8 @@ restructured, run:
 npm run dev:baseline
 ```
 
-`visualizer.js` is stored as UTF-16, as in the original. A small plugin in `vite.config.js` decodes it when
-it is served; the file itself is not changed.
+`baseline/visualizer.js` is stored as UTF-16, as in the original. A small plugin in `vite.config.js` decodes it
+when it is served; the file itself is not changed. `src/visualizer.js` is plain UTF-8.
 
 ## Test and lint
 

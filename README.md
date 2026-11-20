@@ -17,7 +17,7 @@ reproduced or compared. This project adds tests and determinism before it adds f
 
 | | |
 | --- | --- |
-| **Today** | The original simulation, kept byte-identical to upstream in `baseline/` (11 files) and still equal to it in `src/`, served by Vite, with 149 passing tests |
+| **Today** | The original simulation, kept byte-identical to upstream in `baseline/` (11 files), and the same code as formatted, linted ES modules in `src/` that reproduce the same recorded runs, served by Vite, with 202 passing tests |
 | **Planned** | Seeded, fixed-step, headless simulation; a road graph and traffic; swappable drivers; a safety supervisor; scenario metrics |
 | **Toolchain** | Node.js 20+, Vite, Vitest, ESLint, Prettier, all exact-pinned dev dependencies; the simulation itself uses no libraries |
 | **Delivery** | Pull requests only, merged with a merge commit; `lint and test` is a required check on `main` |
@@ -26,8 +26,8 @@ reproduced or compared. This project adds tests and determinism before it adds f
 ## Status
 
 Phase 0 (foundation) was signed off on 2026-11-09. Phase 1 (understand and measure the baseline) is in progress.
-`baseline/` holds the original simulation, frozen and never edited. `src/` is still the same code and has not been
-refactored yet; Phase 2 restructures it. Tasks, acceptance criteria and the log are in
+`baseline/` holds the original simulation, frozen and never edited. `src/` is the same code converted to ES
+modules with its behaviour unchanged (the golden replay passes against both); Phase 2 restructures it further. Tasks, acceptance criteria and the log are in
 [docs/TASKS.md](docs/TASKS.md).
 
 | Phase | Scope | State |
@@ -80,8 +80,8 @@ flowchart LR
 | Practice | Evidence |
 | --- | --- |
 | The original code is kept byte-identical | SHA-256 table recorded at T-001 in [docs/TASKS.md](docs/TASKS.md) and checked on `baseline/` by [baseline-hashes](tests/baseline-hashes.test.js); `baseline/**` is marked `-text` in [.gitattributes](.gitattributes) |
-| Behaviour is pinned before any change | 32 characterization tests: [utils](tests/utils.test.js) (14) and [network](tests/network.test.js) (18); 19 tests of a [headless harness](tests/headless.test.js) and 2 of the [baseline hashes](tests/baseline-hashes.test.js), all running the unmodified code in `baseline/`. Quirks are recorded, not fixed |
-| Reference runs of the original are recorded | Four golden runs in [tests/golden/](tests/golden), replayed and compared number by number: [golden](tests/golden.test.js) (13 tests), [golden-compare](tests/golden-compare.test.js) (19), [baseline-metrics](tests/baseline-metrics.test.js) (5), [mulberry32](tests/mulberry32.test.js) (7). Numbers: [docs/baseline-metrics.md](docs/baseline-metrics.md) |
+| Behaviour is pinned before any change | 66 characterization test runs: [utils](tests/utils.test.js) (30) and [network](tests/network.test.js) (36), each case run against the unmodified code in `baseline/` and against the `src/` modules; 19 tests of a [headless harness](tests/headless.test.js) and 2 of the [baseline hashes](tests/baseline-hashes.test.js) on `baseline/`. Quirks are recorded, not fixed |
+| Reference runs of the original are recorded | Four golden runs in [tests/golden/](tests/golden), replayed against `baseline/` and against the `src/` modules and compared number by number: [golden](tests/golden.test.js) (18 tests), [golden-compare](tests/golden-compare.test.js) (19), [baseline-metrics](tests/baseline-metrics.test.js) (5), [mulberry32](tests/mulberry32.test.js) (7), and 14 tests of the [module bridge](tests/moduleSim.test.js). Numbers: [docs/baseline-metrics.md](docs/baseline-metrics.md) |
 | The commit guards are tested | 52 tests in [tests/hooks.test.js](tests/hooks.test.js); the guards live in [.githooks/](.githooks) |
 | Test tasks need a mutation check | Mutations of the code and the hooks were applied in scratch copies; results are in the T-003 and T-004 rows of the log |
 | CI on every pull request and push to `main` | [ci.yml](.github/workflows/ci.yml): `npm ci`, lint, tests on Node 22 |
@@ -109,8 +109,8 @@ flowchart LR
 
 ```text
 baseline/               the 11 original files, frozen byte for byte (never edited)
-src/                    simulation code (still equal to baseline/ for now)
-tests/                  characterization, headless-harness, golden-trajectory and commit-guard tests; helpers for loading and running the legacy scripts; golden fixtures in tests/golden/
+src/                    simulation code as ES modules (the original behaviour, restructured further in Phase 2)
+tests/                  characterization, headless-harness, golden-trajectory and commit-guard tests; helpers for loading and running the legacy scripts and the src/ modules; golden fixtures in tests/golden/
 docs/                   architecture, decisions, tasks, setup
 .githooks/              commit guards (see docs/setup.md)
 .github/workflows/      continuous integration
