@@ -5,10 +5,8 @@ import globals from 'globals';
 export default [
   {
     // baseline/ is the frozen original (classic scripts, one file in UTF-16) and is never linted.
-    // src/ is linted from Phase 2 onwards.
     ignores: [
       'baseline/**',
-      'src/**',
       'node_modules/**',
       'dist/**',
       'coverage/**',
@@ -23,6 +21,18 @@ export default [
       ecmaVersion: 'latest',
       sourceType: 'module',
       globals: globals.node,
+    },
+    linterOptions: {
+      reportUnusedDisableDirectives: 'error',
+    },
+  },
+  {
+    // The simulation and its page: ES modules that run in the browser.
+    files: ['src/**/*.js'],
+    languageOptions: {
+      ecmaVersion: 'latest',
+      sourceType: 'module',
+      globals: globals.browser,
     },
     linterOptions: {
       reportUnusedDisableDirectives: 'error',
