@@ -17,6 +17,8 @@ Accepted decisions change only through a new ADR.
 | [0008](#adr-0008) | Determinism before features | Accepted | 2026-11-05 |
 | [0009](#adr-0009) | Pull-request delivery flow | Accepted | 2026-11-07 |
 | [0010](#adr-0010) | Golden trajectories: exact comparison, deliberate re-recording | Accepted | 2026-11-09 |
+| [0011](#adr-0011) | Freeze the baseline in `baseline/` and restructure `src/` in place | Proposed | 2026-11-20 |
+| [0012](#adr-0012) | One fixed tick and one explicit seeded generator | Proposed | 2026-11-20 |
 
 ---
 
@@ -186,6 +188,97 @@ Accepted decisions change only through a new ADR.
 
 [v8-7c1d2c3]: https://chromium.googlesource.com/v8/v8/+/7c1d2c3724000b4895ef95f75670ca0b6f3ebe4d
 [v8-43f04a5]: https://chromium.googlesource.com/v8/v8/+/43f04a52f24dab40d3d9ff7aa4849e70a0d10225
+
+## ADR-0011
+
+**Freeze the baseline in `baseline/` and restructure `src/` in place** · Proposed · 2026-11-20
+
+- **Context:**
+  - Phase 2 restructures `src/` (ES modules, a DOM-free core, a seeded generator), so its files stop being the
+    original.
+  - Several things still need the original files after that:
+    - the headless harness and the golden recorder: ADR-0010 re-records the goldens from the baseline when a
+      Node major changes their numbers
+    - the characterization tests of T-003
+    - the `path:line` references in `docs/baseline-walkthrough.md`
+    - the T-001 hash table
+  - `.gitattributes` keeps `src/**` byte for byte (`-text`) only because it holds the import; the rest of the
+    repository uses `* text=auto`.
+- **Options:**
+  - (a) Restructure `src/` in place and keep no copy; re-record from an old commit (for example a
+    `git worktree` of the import commit) when needed. Nothing is duplicated, but re-recording and the
+    characterization tests then depend on checking out history, which CI does not do.
+  - (b) Move the original to `baseline/` with `git mv` and write a new `src/`. History follows the original
+    into `baseline/`, and every restructured file starts a fresh history.
+  - (c) Copy the original into `baseline/`, byte-identical and checked by a hash test, and restructure `src/`
+    in place. About 32 KB is duplicated. The early restructuring commits (formatting, modules, the generator)
+    show as changes to the same files; once T-204 splits them into `src/sim/` and `src/render/`, history
+    no longer links file by file.
+- **Decision (proposed):** (c). The harness, the recorder and the characterization tests keep running on the
+  real original in every checkout, including CI, which checks out only the latest commit and has no history to
+  recover it from. Option (b) would give the same, but a move leaves no `src/`: the page and its tests stop
+  working until a new `src/` exists, so the move cannot be a separate step that keeps the checks green, while
+  under (c) every restructuring step is a small change to files that already work.
+- **Consequences:**
+  - `baseline/` is never edited. A test checks it against the T-001 hash table. `baseline/**` is marked
+    `-text` in `.gitattributes` before the files are added, and lint and Prettier ignore it.
+  - The harness and its tests (`tests/headless.test.js`), `loadLegacy`, the recorder, the golden replay and the
+    walkthrough point at `baseline/` (T-201). From T-202 on the replay also runs against `src/`, so the same
+    fixtures guard both.
+  - Once `src/` no longer holds the import (T-202), `src/** -text` is removed, so new files there are
+    normalised like the rest of the repository.
+  - `NOTICE.md` names `baseline/` as the unmodified copy and `src/` as derived work under the same MIT licence.
+
+## ADR-0012
+
+**One fixed tick and one explicit seeded generator** · Proposed · 2026-11-20
+
+- **Context:**
+  - The baseline advances its physics once per `requestAnimationFrame` callback. Those callbacks follow the
+    display's refresh rate, and they pause in background tabs. MDN (page last modified 2026-08-21) lists
+    "75hz, 120hz, and 144hz" as widely used alongside 60 Hz, and warns that an animation that ignores the
+    timestamp "will run faster on high refresh-rate screens". A car in the baseline therefore drives 2.4 times
+    as fast on a 144 Hz display as on a 60 Hz one.
+  - ARCHITECTURE §4 proposes `world.step(dtSeconds)`. Scaling every speed by a time step in seconds changes the
+    arithmetic of every update, and ADR-0010 requires the restructure to reproduce the golden numbers to the
+    last bit.
+  - The goldens were recorded with `Math.random` replaced by Mulberry32 (Tommy Ettinger, 2017, CC0 1.0), seeded
+    per scenario. Mulberry32 has 32 bits of state and a period of 2^32. Its author noted in a comment on the
+    original gist (2022-11-10) that it cannot produce about a third of all 32-bit values. One run draws at most
+    12,743 numbers: 64 per brain for 100 brains, 64 per mutated brain for 99 brains, and 7 traffic colours.
+  - Glenn Fiedler's "Fix Your Timestep!" (2004-06-10) describes the usual pattern: accumulate real time, run
+    whole fixed steps, carry the remainder, clamp the frame time (0.25 s in the article) to avoid the "spiral
+    of death", and optionally interpolate what is drawn.
+- **Options:**
+  - (a) `world.step(dtSeconds)` with each frame's real duration. It follows the display, so runs cannot be
+    reproduced.
+  - (b) `world.step(dtSeconds)` with a fixed `dt`, and quantities in metres and seconds. Runs are reproducible,
+    but every update's arithmetic changes, so the goldens could no longer guard the restructure.
+  - (c) `world.step()` advances exactly one tick of 1/60 s. Quantities stay per tick, with units in their names
+    (`speedPxPerTick`). The browser runs whole ticks from elapsed real time, in Fiedler's manner, and draws
+    once per frame.
+- **Decision (proposed):** (c).
+  - **Interface:** `createWorld({ seed, savedBrain })`; `world.step()` advances one tick and returns nothing;
+    `world.state()` returns a plain snapshot. ARCHITECTURE §4 changes from `world.step(dtSeconds)` to
+    `world.step()`. A named constant `TICK_SECONDS = 1/60` serves anything that needs real time.
+  - **Tick count:** `world.tick` is the number of steps taken. The baseline's tick 0 is the state after the
+    update that `main.js` makes while it loads (T-102), so fixture tick n is world tick n + 1.
+  - **Randomness:** one generator per world, `createRng(seed)`, the same Mulberry32 function that recorded the
+    goldens, passed explicitly to everything that draws. `src/` never calls `Math.random`. The draw order stays
+    the baseline's: brains in car order, then the mutation of cars 1 to 99 when a brain is saved, then the
+    seven traffic colours.
+  - **Browser loop:** elapsed time is clamped to 250 ms per frame, so a frame runs at most 15 ticks, and time
+    beyond the clamp is dropped rather than caught up later. No interpolation in Phase 2.
+- **Consequences:**
+  - The same seed gives the same run in the browser, in the tests and in the headless runner, whatever the
+    display, and headless runs go as fast as the CPU allows.
+  - After a long stall the page slows down briefly instead of catching up; that is intended.
+  - Speeds and accelerations stay in pixels per tick until the bicycle model (Phase 3) brings metres and
+    seconds. That change alters every trajectory, so it needs its own ADR, which retires or re-records the
+    goldens.
+  - Mulberry32 is enough for one world. Several independent streams, as parallel evolution in Phase 4 may
+    need, require a separate decision: deriving one seed per stream by hashing is common, but no published
+    independence guarantee exists for 32-bit generators.
 
 ---
 
