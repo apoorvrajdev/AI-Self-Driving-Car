@@ -3,6 +3,12 @@ import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 
 /**
+ * The frozen copy of the original files (ADR-0011). The harness, the recorder, the golden replay and the
+ * characterization tests read from here by default, so later changes to src/ cannot affect them.
+ */
+export const BASELINE_DIR = new URL('../../baseline/', import.meta.url);
+
+/**
  * Mulberry32: a small seeded generator returning numbers in [0, 1).
  *
  * A line-by-line translation of the C original by Tommy Ettinger (2017, CC0 1.0), mulberry32.c:
@@ -41,11 +47,11 @@ export function makeSequenceRandom(values) {
 }
 
 /**
- * Loads baseline scripts from src/ into one fresh vm context, unedited, and returns named top-level
+ * Loads baseline scripts from baseline/ into one fresh vm context, unedited, and returns named top-level
  * functions and classes. The context has its own Math, whose random() is replaced by `random`, so the
  * host is never affected. Objects created inside the context belong to its realm: compare their
  * contents (numbers, lengths, JSON), not their prototypes.
- * @param {string[]} files file names under src/, in load order (for example ['utils.js', 'network.js'])
+ * @param {string[]} files file names under baseline/, in load order (for example ['utils.js', 'network.js'])
  * @param {string[]} names top-level names to return
  * @param {{ random?: () => number }} [options]
  * @returns {Record<string, any>}
@@ -54,7 +60,7 @@ export function loadLegacy(files, names, { random = makeSeededRandom(1) } = {}) 
   const context = vm.createContext({ __random: random });
   vm.runInContext('Math.random = __random;', context);
   for (const file of files) {
-    const url = new URL(`../../src/${file}`, import.meta.url);
+    const url = new URL(file, BASELINE_DIR);
     const source = readFileSync(url, 'utf8');
     new vm.Script(source, { filename: file }).runInContext(context);
   }

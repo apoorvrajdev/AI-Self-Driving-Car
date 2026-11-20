@@ -3,9 +3,9 @@ import { readFileSync } from 'node:fs';
 import { resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import vm from 'node:vm';
-import { makeSeededRandom } from './loadLegacy.js';
+import { BASELINE_DIR, makeSeededRandom } from './loadLegacy.js';
 
-/** The baseline scripts in the order src/index.html loads them. */
+/** The baseline scripts in the order baseline/index.html loads them. */
 export const BASELINE_SCRIPTS = [
   'visualizer.js',
   'network.js',
@@ -71,8 +71,8 @@ function toPlain(value) {
  *
  * Tick 0 means "after load": main.js itself calls animate() once while it loads, as a browser does, so every
  * car has been updated once before the first step.
- * `srcDir` loads the scripts from another directory (a scratch copy of src/ for mutation checks) instead of
- * the repository's src/.
+ * `srcDir` loads the scripts from another directory (a scratch copy of baseline/ for mutation checks) instead
+ * of the repository's baseline/.
  * @param {{ seed?: number, savedBrain?: object, srcDir?: string }} [options]
  */
 export function createBaselineSim({ seed = 1, savedBrain, srcDir } = {}) {
@@ -127,9 +127,7 @@ export function createBaselineSim({ seed = 1, savedBrain, srcDir } = {}) {
   const context = vm.createContext(sandbox);
   vm.runInContext('Math.random = __random;', context);
   const srcBase =
-    srcDir === undefined
-      ? new URL('../../src/', import.meta.url)
-      : pathToFileURL(resolve(srcDir) + sep);
+    srcDir === undefined ? BASELINE_DIR : pathToFileURL(resolve(srcDir) + sep);
   for (const file of BASELINE_SCRIPTS) {
     const source = readScript(new URL(file, srcBase));
     new vm.Script(source, { filename: file }).runInContext(context);

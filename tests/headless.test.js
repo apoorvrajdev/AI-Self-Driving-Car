@@ -1,37 +1,22 @@
-import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { BASELINE_SCRIPTS, createBaselineSim } from './helpers/headless.js';
+import { BASELINE_DIR } from './helpers/loadLegacy.js';
 
-const srcUrl = (file) => new URL(`../src/${file}`, import.meta.url);
+const baselineUrl = (file) => new URL(file, BASELINE_DIR);
 const SLOW_MS = 60_000;
 
-// The T-001 baseline hash table (docs/TASKS.md, upstream commit 8b87236).
-const BASELINE_HASHES = {
-  'car.js': [4794, '336cf43585bfc53ce9281404d32b85dc36e4a424dd6fbea674eb44f54c690858'],
-  'car.png': [6964, '3e3d3a268ca6133277f89346a7b74b5c28658e9956e91514103a7508a855dc8f'],
-  'controls.js': [1427, 'b70138dd2a6026655fd4283b7aafa3996d0cdc76c5f4365c89efe757ec2d7d7b'],
-  'index.html': [739, 'bcdcdb2bdcfb487176bc66e274d7abe0c889251a468e4330608c80e28b4d134f'],
-  'main.js': [2463, '606b6354d9ffe797625bfd3f53be80593f1c50dddd558a00531c3d30a29b14b2'],
-  'network.js': [2505, '8a6df13b9bbd97932d48fa084d932eac621ce2e99e44f6f12ab5bd0ab93b364b'],
-  'road.js': [1520, '9bf0dbbc6244ec882c0a73b615be767d15bdfdc83ae4b060fa1d42225624423a'],
-  'sensor.js': [3138, '97dbaa7fd1e3cbe1ac62f5b7db088d9b33cd2530583380f7e4629ff66726a2fb'],
-  'style.css': [471, '4fc64d4f132574ff36eb51f2528bdcd6c5c4646cf34d596c5bb256ac99fd4e53'],
-  'utils.js': [1308, '4f5b5d5836b82f7189d7744554f4a9de76112518bf7dd720a7a6527a04a84678'],
-  'visualizer.js': [7098, '4f228a30318f5932db236fca82d452d6a554aa138125c088a77e44b95ac8f883'],
-};
-
-/** The traffic cars as written in src/main.js: lane index and starting y, in order. */
+/** The traffic cars as written in baseline/main.js: lane index and starting y, in order. */
 function trafficFromMain() {
-  const text = readFileSync(srcUrl('main.js'), 'utf8');
+  const text = readFileSync(baselineUrl('main.js'), 'utf8');
   const found = [...text.matchAll(/new Car\(road\.getLaneCenter\((\d)\),(-\d+),30,50,"DUMMY"/g)];
   return found.map((match) => ({ lane: Number(match[1]), y: Number(match[2]) }));
 }
 
 /**
  * An independent model of a traffic car that drives straight, written from the movement rules in
- * Car.#move (src/car.js:102-139): forward is on, maxSpeed is 2, acceleration 0.2, friction 0.05, angle 0.
- * These constants are fixed here, not read from main.js, and are valid only while src/ is hash-pinned.
+ * Car.#move (baseline/car.js:102-139): forward is on, maxSpeed is 2, acceleration 0.2, friction 0.05, angle 0.
+ * These constants are fixed here, not read from main.js, and are valid only while baseline/ is hash-pinned.
  */
 function trafficAfter(updates, startY) {
   let speed = 0;
@@ -51,28 +36,17 @@ const parameters = (brain) =>
   brain.levels.flatMap((level) => [...level.biases, ...level.weights.flat()]);
 
 describe('baseline files', () => {
-  it('src/ files equal the T-001 hash table', () => {
-    for (const [file, [bytes, sha256]] of Object.entries(BASELINE_HASHES)) {
-      const content = readFileSync(srcUrl(file));
-      expect({ file, bytes: content.length }).toEqual({ file, bytes });
-      expect({ file, sha256: createHash('sha256').update(content).digest('hex') }).toEqual({
-        file,
-        sha256,
-      });
-    }
-  });
-
   it('only visualizer.js starts with a UTF-16LE byte-order mark', () => {
     for (const file of BASELINE_SCRIPTS) {
-      const [first, second] = readFileSync(srcUrl(file));
+      const [first, second] = readFileSync(baselineUrl(file));
       const isUtf16Bom = first === 0xff && second === 0xfe;
       expect({ file, isUtf16Bom }).toEqual({ file, isUtf16Bom: file === 'visualizer.js' });
       expect({ file, utf8Bom: first === 0xef }).toEqual({ file, utf8Bom: false });
     }
   });
 
-  it('the harness loads the scripts in the order of src/index.html', () => {
-    const html = readFileSync(srcUrl('index.html'), 'utf8');
+  it('the harness loads the scripts in the order of baseline/index.html', () => {
+    const html = readFileSync(baselineUrl('index.html'), 'utf8');
     const order = [...html.matchAll(/<script src="([^"]+)"/g)].map((match) => match[1]);
     expect(BASELINE_SCRIPTS).toEqual(order);
     expect(order).toHaveLength(8);

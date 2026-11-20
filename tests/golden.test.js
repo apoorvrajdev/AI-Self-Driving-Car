@@ -16,7 +16,7 @@ import {
 } from './helpers/golden.js';
 
 const SLOW_MS = 120_000;
-// Test-only hook: run the replay against a scratch copy of src/ (mutation checks). Unset in normal runs.
+// Test-only hook: run the replay against a scratch copy of baseline/ (mutation checks). Unset in normal runs.
 const srcDir = process.env.GOLDEN_SRC_DIR || undefined;
 
 describe('golden trajectories', () => {
