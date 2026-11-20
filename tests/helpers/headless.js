@@ -1,5 +1,7 @@
 // @ts-check
 import { readFileSync } from 'node:fs';
+import { resolve, sep } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import vm from 'node:vm';
 import { makeSeededRandom } from './loadLegacy.js';
 
@@ -69,9 +71,11 @@ function toPlain(value) {
  *
  * Tick 0 means "after load": main.js itself calls animate() once while it loads, as a browser does, so every
  * car has been updated once before the first step.
- * @param {{ seed?: number, savedBrain?: object }} [options]
+ * `srcDir` loads the scripts from another directory (a scratch copy of src/ for mutation checks) instead of
+ * the repository's src/.
+ * @param {{ seed?: number, savedBrain?: object, srcDir?: string }} [options]
  */
-export function createBaselineSim({ seed = 1, savedBrain } = {}) {
+export function createBaselineSim({ seed = 1, savedBrain, srcDir } = {}) {
   /** @type {Map<string, string>} */
   const items = new Map();
   const storage = {
@@ -122,8 +126,12 @@ export function createBaselineSim({ seed = 1, savedBrain } = {}) {
   };
   const context = vm.createContext(sandbox);
   vm.runInContext('Math.random = __random;', context);
+  const srcBase =
+    srcDir === undefined
+      ? new URL('../../src/', import.meta.url)
+      : pathToFileURL(resolve(srcDir) + sep);
   for (const file of BASELINE_SCRIPTS) {
-    const source = readScript(new URL(`../../src/${file}`, import.meta.url));
+    const source = readScript(new URL(file, srcBase));
     new vm.Script(source, { filename: file }).runInContext(context);
   }
 
