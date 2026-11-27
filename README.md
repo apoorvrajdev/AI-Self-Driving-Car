@@ -87,7 +87,7 @@ flowchart LR
 | Test tasks need a mutation check | Mutations of the code and the hooks were applied in scratch copies; results are in the T-003 and T-004 rows of the log |
 | CI on every pull request and push to `main` | [ci.yml](.github/workflows/ci.yml): `npm ci`, lint, tests on Node 22 |
 | Decisions are written down | 10 ADRs, 9 Accepted and 1 Proposed, in [docs/DECISIONS.md](docs/DECISIONS.md) |
-| Determinism before features | ADR-0008 is Accepted. The test harness seeds `Math.random` so runs can be replayed; `src/` itself is still unseeded and per-frame, and the seeded RNG and fixed time step in the simulation are Phase 2 work |
+| Determinism before features | ADR-0008 and ADR-0012 are Accepted. `src/` draws every random number from one seeded generator ([src/sim/rng.js](src/sim/rng.js)) passed in explicitly, and the page takes `?seed=`; physics still advances per rendered frame, and the fixed time step is Phase 2 work |
 | Pull requests, merge commits, one author | ADR-0009 and ADR-0006; the history check is recorded in the log |
 
 ## Limitations
@@ -96,9 +96,9 @@ flowchart LR
   network (five sensor inputs); there is no perception, planning or safety layer.
 - Learning is manual. There is no fitness function: you save the best car's brain and reload. The "best" car is
   the one furthest up the road, whether or not it has crashed.
-- In `src/`, randomness is unseeded and physics advances per rendered frame, so a run of the page cannot be
-  reproduced. Only the test harness replays runs, by seeding `Math.random` and calling the page's frame function
-  (Phase 2 moves this into the simulation).
+- In `src/`, randomness is seeded (`?seed=`), but physics still advances per rendered frame, so a run of the
+  page depends on the display's refresh rate. Only the test harness replays runs exactly, by calling the page's
+  frame function (Phase 2 moves to a fixed tick).
 - Simulation and drawing are fused in `src/`; the harness runs them headless with stubbed canvases. One straight
   road, no lights or pedestrians.
 - The only numbers published are the four reference runs of the original in
