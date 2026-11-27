@@ -38,7 +38,10 @@ const IMPLEMENTATIONS = [
     replay: async (scenario, savedBrain) => {
       const sim = await createModuleSim({ seed: scenario.seed, savedBrain });
       try {
-        return recordScenario(sim, scenario, savedBrain);
+        const result = recordScenario(sim, scenario, savedBrain);
+        // The page drew every number from its own seeded generator, never from Math.random (T-203).
+        expect(sim.randomCalls()).toBe(0);
+        return result;
       } finally {
         sim.dispose();
       }

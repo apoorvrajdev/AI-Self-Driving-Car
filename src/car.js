@@ -4,7 +4,7 @@ import { Controls } from './controls.js';
 import { polysIntersect } from './utils.js';
 
 export class Car {
-  constructor(x, y, width, height, controlType, maxSpeed = 3, color = 'blue') {
+  constructor(x, y, width, height, controlType, maxSpeed = 3, color = 'blue', random) {
     this.x = x;
     this.y = y;
     this.width = width;
@@ -21,7 +21,7 @@ export class Car {
 
     if (controlType != 'DUMMY') {
       this.sensor = new Sensor(this);
-      this.brain = new NeuralNetwork([this.sensor.rayCount, 6, 4]);
+      this.brain = new NeuralNetwork([this.sensor.rayCount, 6, 4], random);
     }
     this.controls = new Controls(controlType);
 

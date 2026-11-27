@@ -19,13 +19,14 @@ licence. The full licence text is in [LICENSE](LICENSE).
 The code in `baseline/` was written by the original author during the course above. `src/` was imported from
 the same files, and the files in `src/` that are changed in later work remain derived from this baseline and
 stay under the same MIT licence, with the additional copyright line for later contributions in
-[LICENSE](LICENSE).
+[LICENSE](LICENSE). New files in `src/`, such as `src/sim/rng.js`, are project code under the same licence,
+except for the third-party parts listed below.
 
 ## Third-party components
 
 | Component | Version | Licence | Used for |
 | --- | --- | --- | --- |
-| Mulberry32 pseudo-random number generator (Tommy Ettinger, 2017) | n/a (inline, about 10 lines) | CC0 1.0 (translated from the original C source; see note below) | Seeded random numbers in tests (`makeSeededRandom` in `tests/helpers/loadLegacy.js`) |
+| Mulberry32 pseudo-random number generator (Tommy Ettinger, 2017) | n/a (inline, about 10 lines, in two places) | CC0 1.0 (translated from the original C source; see note below) | The simulation's seeded generator (`createRng` in `src/sim/rng.js`) and seeded random numbers in tests (`makeSeededRandom` in `tests/helpers/loadLegacy.js`) |
 
 Mulberry32: the algorithm and constants are by Tommy Ettinger (2017). His C implementation, `mulberry32.c`,
 carries the header "Written in 2017 by Tommy Ettinger ... the author has dedicated all copyright and related and
@@ -36,6 +37,10 @@ last content revision 2017-11-06, checked 2026-11-20. The function `makeSeededRa
 `tests/helpers/loadLegacy.js` is a line-by-line translation of that C function into JavaScript (`Math.imul` and
 `>>> 0` stand in for unsigned 32-bit arithmetic), checked against the C source on 2026-11-20.
 `tests/mulberry32.test.js` pins its first 10,000 outputs for six seeds, and those outputs equal those of
-the earlier version. The generator only seeds tests and is not suitable for security purposes.
+the earlier version. `createRng` in `src/sim/rng.js` (added 2026-11-27) is the same translation, and
+`tests/rng.test.js` checks that it returns exactly the same first 10,000 numbers as `makeSeededRandom` for the
+same six seeds. `createRng` is therefore CC0 1.0 in origin, not derived from the imported baseline; the rest of
+`src/sim/rng.js` (`parseSeed` and the comments) is new project code under the MIT licence in
+[LICENSE](LICENSE). The generator is not suitable for security purposes.
 
 Development dependencies are added with their licences when they are introduced.

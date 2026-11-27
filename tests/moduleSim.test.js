@@ -1,16 +1,26 @@
 // @ts-check
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, describe, expect, it } from 'vitest';
-import { makeSequenceRandom } from './helpers/loadLegacy.js';
-import { bindRandom, createModuleSim, loadSrcModules } from './helpers/moduleSim.js';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { createModuleSim } from './helpers/moduleSim.js';
 
 /** The host objects the page needs and the bridge stubs. */
-const STUBBED = ['document', 'window', 'localStorage', 'Image', 'requestAnimationFrame'];
+const STUBBED = [
+  'document',
+  'window',
+  'localStorage',
+  'Image',
+  'requestAnimationFrame',
+  'location',
+];
 
-/** Math.random and the property descriptors of the stubbed globals (descriptors never run a getter). */
+/**
+ * Math.random, console.log and the property descriptors of the stubbed globals (descriptors never run a
+ * getter).
+ */
 const hostState = () => ({
   random: Math.random,
+  log: console.log,
   descriptors: STUBBED.map((name) => Object.getOwnPropertyDescriptor(globalThis, name)),
   present: STUBBED.map((name) => name in globalThis),
 });
@@ -28,20 +38,22 @@ async function start(options) {
 }
 
 describe('module bridge: leaves the host as it found it', () => {
-  it('puts Math.random and the five stubbed globals back after dispose()', async () => {
+  it('puts Math.random, console.log and the six stubbed globals back after dispose()', async () => {
     const before = hostState();
     const sim = await start({ seed: 3 });
     sim.step(5);
     // While the sim exists the host really is stubbed, so the checks after dispose() mean something.
     expect(Math.random).not.toBe(before.random);
+    expect(console.log).not.toBe(before.log);
     for (const name of STUBBED) expect(name in globalThis).toBe(true);
 
     sim.dispose();
     const after = hostState();
     expect(after.random).toBe(before.random);
+    expect(after.log).toBe(before.log);
     expect(after.descriptors).toEqual(before.descriptors);
     expect(after.present).toEqual(before.present);
-    // On Node 22 and 24 none of the five exists, so each is undefined again.
+    // On Node 22 and 24 none of the six exists, so each is undefined again.
     for (const [i, name] of STUBBED.entries()) {
       if (!before.present[i])
         expect(typeof (/** @type {any} */ (globalThis)[name])).toBe('undefined');
@@ -78,14 +90,74 @@ describe('module bridge: each run is a fresh evaluation', () => {
     expect(second.state()).toEqual(startState);
     expect(second.brains()).toEqual(startBrains);
   });
+});
 
-  it('different seeds give different brains', async () => {
-    const a = await start({ seed: 1 });
-    const brainsA = a.brains();
-    a.dispose();
-    const b = await start({ seed: 2 });
-    expect(b.brains()).not.toEqual(brainsA);
+describe('the page seed: ?seed= drives one generator', () => {
+  /** @param {number} seed */
+  async function brainsAndColors(seed) {
+    const sim = await start({ seed });
+    const result = { brains: sim.brains(), colors: sim.trafficColors() };
+    sim.dispose();
+    return result;
+  }
+
+  it('the same seed gives identical brains and traffic colours', async () => {
+    const first = await brainsAndColors(1);
+    const second = await brainsAndColors(1);
+    // Seven real colours, so the comparison cannot pass on the stub's default fill.
+    expect(first.colors).toHaveLength(7);
+    for (const color of first.colors) expect(color).toMatch(/^hsl\(\d/);
+    expect(second).toEqual(first);
   });
+
+  it('seeds 1 and 2 give different brains and different traffic colours', async () => {
+    const one = await brainsAndColors(1);
+    const two = await brainsAndColors(2);
+    expect(two.brains).not.toEqual(one.brains);
+    expect(two.colors).not.toEqual(one.colors);
+  });
+
+  it('randomCalls() counts calls to Math.random while the sim is open', async () => {
+    const sim = await start({ seed: 1 });
+    expect(sim.randomCalls()).toBe(0);
+    Math.random();
+    expect(sim.randomCalls()).toBe(1);
+    sim.dispose();
+    expect(sim.randomCalls()).toBe(1);
+  });
+
+  it('?seed=0 is used as seed 0: crypto is not asked and the log names it', async () => {
+    const cryptoSpy = vi.spyOn(crypto, 'getRandomValues');
+    try {
+      const sim = await start({ seed: 0 });
+      expect(cryptoSpy).not.toHaveBeenCalled();
+      expect(sim.logged).toEqual(['seed 0 (open ?seed=0 to repeat this run)']);
+    } finally {
+      cryptoSpy.mockRestore();
+    }
+  });
+
+  it.each(['', '?seed=abc', '?seed=-1'])(
+    'with %j the page takes its seed from crypto.getRandomValues and logs it',
+    async (search) => {
+      // 5, not 1: seed 1 is the default elsewhere, so a page that ignored crypto's value could still match.
+      const expected = await brainsAndColors(5);
+      const cryptoSpy = vi
+        .spyOn(crypto, 'getRandomValues')
+        .mockImplementation((/** @type {any} */ array) => {
+          array[0] = 5;
+          return array;
+        });
+      try {
+        const sim = await start({ search });
+        expect(cryptoSpy).toHaveBeenCalledTimes(1);
+        expect(sim.logged).toEqual(['seed 5 (open ?seed=5 to repeat this run)']);
+        expect(sim.brains()).toEqual(expected.brains);
+      } finally {
+        cryptoSpy.mockRestore();
+      }
+    },
+  );
 });
 
 describe('module bridge: the page behaviour is reachable', () => {
@@ -137,46 +209,5 @@ describe('module bridge: the page behaviour is reachable', () => {
       seen.add(sim.state().bestIndex);
     }
     expect(seen.size).toBeGreaterThan(1);
-  });
-});
-
-describe('module bridge: bindRandom gives each handle its own Math.random', () => {
-  it('feeds a call the handle’s draws and puts Math.random back afterwards', async () => {
-    const { getRandomColor } = bindRandom(
-      await loadSrcModules(['utils.js']),
-      makeSequenceRandom([0]),
-    );
-    const original = Math.random;
-    expect(getRandomColor()).toBe('hsl(290, 100%, 60%)');
-    expect(Math.random).toBe(original);
-  });
-
-  it('restores Math.random when the wrapped call throws', async () => {
-    const { NeuralNetwork } = bindRandom(await loadSrcModules(['utils.js', 'network.js']));
-    const original = Math.random;
-    expect(() => NeuralNetwork.feedForward([1, 2, 3], new NeuralNetwork([3]))).toThrow(TypeError);
-    expect(Math.random).toBe(original);
-  });
-
-  it('wraps constructors and static methods, and keeps instanceof working', async () => {
-    const { NeuralNetwork } = bindRandom(
-      await loadSrcModules(['utils.js', 'network.js']),
-      makeSequenceRandom([0.5, 0.5, 0.5, 1]),
-    );
-    const net = new NeuralNetwork([2, 1]);
-    expect(net).toBeInstanceOf(NeuralNetwork);
-    NeuralNetwork.mutate(net, 1);
-    // Construction drew 0.5 three times, so every value started at 0; mutate then drew 1.
-    expect(net.levels[0].biases).toEqual([1]);
-  });
-
-  it('two handles do not share draws', async () => {
-    const modules = await loadSrcModules(['utils.js', 'network.js']);
-    const a = bindRandom(modules, makeSequenceRandom([0]));
-    const b = bindRandom(modules, makeSequenceRandom([1]));
-    const netA = new a.NeuralNetwork([2, 1]);
-    const netB = new b.NeuralNetwork([2, 1]);
-    expect(netA.levels[0].biases).toEqual([-1]);
-    expect(netB.levels[0].biases).toEqual([1]);
   });
 });

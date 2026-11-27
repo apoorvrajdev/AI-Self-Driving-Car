@@ -101,7 +101,7 @@ Interface changes require an ADR.
 | Path | Contents | Committed |
 | --- | --- | --- |
 | `baseline/` | Frozen, byte-identical copy of the 11 original files (ADR-0011); never edited, hash-checked by `tests/baseline-hashes.test.js`, served by `npm run dev:baseline` | yes |
-| `src/` | Simulation code as ES modules, one module per original file, with the original behaviour (T-202) | yes |
+| `src/` | Simulation code as ES modules, one module per original file, with the original behaviour (T-202), plus `sim/`, the core, from T-203 (`rng.js`) | yes |
 | `tests/` | Unit, characterization and scenario tests; they read `baseline/`, and the golden replay and the characterization cases also run the `src/` modules | yes |
 | `tests/golden/` | Golden-trajectory fixtures recorded from `baseline/`, and their recorder (`npm run golden:record`) | yes |
 | `docs/` | Architecture, decisions, tasks, setup | yes |
@@ -115,9 +115,13 @@ Module structure of `src/` after T-202 (it has no cycles). `utils.js` is the lea
 `sensor.js` and `visualizer.js` import from it; `car.js` imports `sensor.js`, `network.js`, `controls.js` and
 `utils.js`; `main.js` imports the rest, builds the world and calls `animate()` when it is loaded, and exports
 `cars`, `traffic`, `bestCar` (a live binding), `save` and `discard`. `index.html` loads only `main.js`, and
-`main.js` wires the two buttons with `addEventListener`. `tests/helpers/moduleSim.js` is a bridge that imports
-`main.js` afresh for each run with stubbed browser objects and a seeded `Math.random`, so the golden replay and the
-characterization tests can run the modules. T-204b removes the bridge.
+`main.js` wires the two buttons with `addEventListener`. Since T-203, `sim/rng.js` (`createRng`, `parseSeed`) is
+the first file of the core and imports nothing: `main.js` reads the seed from `?seed=` (or else from
+`crypto.getRandomValues`), logs it, and passes one generator explicitly to `Car` (which hands it to its brain),
+`NeuralNetwork.mutate` and `getRandomColor`. Nothing in `src/` calls `Math.random`.
+`tests/helpers/moduleSim.js` is a bridge that imports `main.js` afresh for each run with stubbed browser objects,
+including a `location` that carries the seed, and spies on `Math.random` to prove it is never called, so the golden
+replay can run the modules. T-204b removes the bridge.
 
 Target `src/` layout from Phase 2: `sim/`, `sensors/`, `perception/`, `prediction/`, `planning/`, `safety/`,
 `control/`, `drivers/`, `render/`. Final names are decided in Phase 2.
