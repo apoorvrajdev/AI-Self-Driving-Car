@@ -1,18 +1,25 @@
 import { describe, expect, it } from 'vitest';
-import { loadLegacy, makeSequenceRandom } from './helpers/loadLegacy.js';
-import { bindRandom, loadSrcModules } from './helpers/moduleSim.js';
+import { loadLegacy, makeSeededRandom, makeSequenceRandom } from './helpers/loadLegacy.js';
+import { loadSrcModules } from './helpers/moduleSim.js';
 
 const names = ['lerp', 'getIntersection', 'polysIntersect', 'getRGBA', 'getRandomColor'];
 const srcUtils = await loadSrcModules(['utils.js']);
 
 /**
- * The two implementations every case runs against: the frozen baseline (classic script in a vm) and the
- * src/ module. `load(random)` gives a handle whose Math.random is `random`; the functions of a default
- * handle (seed 1) are spread into each entry so a case can take them as parameters.
+ * The two implementations every case runs against: the frozen baseline (classic script in a vm, whose
+ * Math.random is `random`) and the src/ module (whose getRandomColor is given `random` as an argument).
+ * `load(random)` gives a handle with its own draws; the functions of a default handle (seed 1) are spread
+ * into each entry so a case can take them as parameters.
  */
 const IMPLEMENTATIONS = [
   { label: 'baseline (vm)', load: (random) => loadLegacy(['utils.js'], names, { random }) },
-  { label: 'src modules', load: (random) => bindRandom(srcUtils, random) },
+  {
+    label: 'src modules',
+    load: (random = makeSeededRandom(1)) => ({
+      ...srcUtils,
+      getRandomColor: () => srcUtils.getRandomColor(random),
+    }),
+  },
 ].map(({ label, load }) => ({ label, load, ...load() }));
 
 const square = (x, y, size) => [
@@ -106,7 +113,7 @@ describe.each(IMPLEMENTATIONS)('getRGBA and getRandomColor ($label)', ({ getRGBA
     expect(getRGBA(0)).toBe('rgba(255,255,255,0)');
   });
 
-  it('builds the hue from Math.random as 290 + r * 260 (can exceed 360)', () => {
+  it('builds the hue from the random draw r as 290 + r * 260 (can exceed 360)', () => {
     const low = load(makeSequenceRandom([0]));
     const high = load(makeSequenceRandom([1]));
     expect(low.getRandomColor()).toBe('hsl(290, 100%, 60%)');

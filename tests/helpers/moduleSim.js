@@ -3,7 +3,6 @@ import { resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { vi } from 'vitest';
 import { TICK_MS, createHostStubs, toPlain } from './headless.js';
-import { makeSeededRandom } from './loadLegacy.js';
 
 /**
  * The ES modules under test. MODULES_SRC_DIR points the tests at a scratch copy of src/ (mutation checks);
@@ -33,52 +32,20 @@ export async function loadSrcModules(files, { srcDir } = {}) {
 }
 
 /**
- * Wraps module exports so that every call, construction and static call runs with Math.random replaced by
- * `random`, and puts Math.random back afterwards, even if the call throws. This is the module counterpart of
- * loadLegacy's per-context Math.random: each handle has its own generator, so two handles never share draws.
- * Instance methods are not wrapped (the `prototype` is returned as it is), and a static method runs with the
- * proxy as `this`. Nothing in src/ needs either today; revisit this if an instance method starts to draw.
- * @param {Record<string, any>} exports
- * @param {() => number} [random]
- * @returns {Record<string, any>}
- */
-export function bindRandom(exports, random = makeSeededRandom(1)) {
-  /** @template T @param {() => T} fn @returns {T} */
-  const withRandom = (fn) => {
-    const spy = vi.spyOn(Math, 'random').mockImplementation(random);
-    try {
-      return fn();
-    } finally {
-      spy.mockRestore();
-    }
-  };
-  /** @param {any} value */
-  const bind = (value) => {
-    if (typeof value !== 'function') return value;
-    /** @type {any} */
-    const proxy = new Proxy(value, {
-      apply: (target, thisArg, args) => withRandom(() => Reflect.apply(target, thisArg, args)),
-      construct: (target, args, newTarget) =>
-        withRandom(() => Reflect.construct(target, args, newTarget === proxy ? target : newTarget)),
-      get: (target, property) => bind(Reflect.get(target, property)),
-    });
-    return proxy;
-  };
-  return Object.fromEntries(Object.entries(exports).map(([name, value]) => [name, bind(value)]));
-}
-
-/**
  * Runs the src/ modules in Node, as createBaselineSim runs the baseline. Every call imports src/main.js
  * afresh (vi.resetModules, then a dynamic import, which Vitest 4 re-evaluates), with the page's host objects
- * stubbed through vi.stubGlobal and Math.random replaced by a seeded generator through vi.spyOn. dispose()
- * puts all of it back; so does a failed import, before the error is rethrown.
+ * stubbed through vi.stubGlobal. The seed reaches the page the way a browser gives it, through a stubbed
+ * `location` (`?seed=`), and the page passes its own generator to every draw. Math.random is spied on but not
+ * replaced, so randomCalls() can prove that src/ never calls it. console.log is silenced and its lines are
+ * kept in `logged`. dispose() puts all of it back; so does a failed import, before the error is rethrown.
  *
  * Tick 0 means "after load": main.js itself calls animate() once while it loads, so every car has been
  * updated once before the first step.
+ * `search` replaces the whole query string (default `?seed=<seed>`), to test seeds the page must reject.
  * `srcDir` loads the modules from another directory (a scratch copy of src/) instead of MODULES_DIR.
- * @param {{ seed?: number, savedBrain?: object, srcDir?: string }} [options]
+ * @param {{ seed?: number, search?: string, savedBrain?: object, srcDir?: string }} [options]
  */
-export async function createModuleSim({ seed = 1, savedBrain, srcDir } = {}) {
+export async function createModuleSim({ seed = 1, search, savedBrain, srcDir } = {}) {
   const base = srcDir === undefined ? MODULES_DIR : pathToFileURL(resolve(srcDir) + sep);
   const { storage, canvases, createCanvas } = createHostStubs(savedBrain);
 
@@ -106,14 +73,20 @@ export async function createModuleSim({ seed = 1, savedBrain, srcDir } = {}) {
     animateCallback = callback;
     return 1;
   });
-  const randomSpy = vi.spyOn(Math, 'random').mockImplementation(makeSeededRandom(seed));
+  vi.stubGlobal('location', { search: search ?? `?seed=${seed}` });
+  // Counts calls and passes them through: no generator is substituted.
+  const randomSpy = vi.spyOn(Math, 'random');
+  const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
   let disposed = false;
+  let randomCallsAtDispose = 0;
   const dispose = () => {
     if (disposed) return;
     disposed = true;
+    randomCallsAtDispose = randomSpy.mock.calls.length;
     vi.unstubAllGlobals();
     randomSpy.mockRestore();
+    logSpy.mockRestore();
   };
 
   /** @type {any} */
@@ -125,6 +98,7 @@ export async function createModuleSim({ seed = 1, savedBrain, srcDir } = {}) {
     dispose();
     throw error;
   }
+  const logged = logSpy.mock.calls.map((args) => args.join(' '));
 
   const car = (/** @type {any} */ c) => ({
     x: c.x,
@@ -184,7 +158,25 @@ export async function createModuleSim({ seed = 1, savedBrain, srcDir } = {}) {
     storage,
     /** Every canvas stub the page created (a test hook): the two page canvases, then one mask per car. */
     canvases,
-    /** Restores Math.random and removes every stubbed global. Safe to call twice. */
+    /**
+     * The colour of each traffic car's mask. The Image stub never loads, so this fires the onload handler
+     * the page set, as a browser would, and reads the fill colour it used (a test hook). It paints the masks,
+     * which changes what later draws use, so call it after the last step(), before dispose().
+     * @returns {string[]}
+     */
+    trafficColors() {
+      return main.traffic.map((/** @type {any} */ c) => {
+        c.img.onload();
+        return c.mask.getContext('2d').fillStyle;
+      });
+    },
+    /** How many times anything called Math.random while the sim was open (src/ should never call it). */
+    randomCalls() {
+      return disposed ? randomCallsAtDispose : randomSpy.mock.calls.length;
+    },
+    /** The lines main.js logged to the console while it loaded. */
+    logged,
+    /** Restores Math.random and console.log and removes every stubbed global. Safe to call twice. */
     dispose,
   };
 }

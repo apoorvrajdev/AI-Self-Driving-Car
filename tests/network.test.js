@@ -1,18 +1,35 @@
 import { describe, expect, it } from 'vitest';
 import { loadLegacy, makeSeededRandom, makeSequenceRandom } from './helpers/loadLegacy.js';
-import { bindRandom, loadSrcModules } from './helpers/moduleSim.js';
+import { loadSrcModules } from './helpers/moduleSim.js';
 
 const files = ['utils.js', 'network.js'];
 const names = ['NeuralNetwork', 'Level'];
 const srcModules = await loadSrcModules(files);
 
 /**
- * The two implementations every case runs against: the frozen baseline (classic scripts in a vm) and the
- * src/ modules. `load(random)` gives a handle whose Math.random is `random`, so each handle has its own draws.
+ * The src/ NeuralNetwork with `random` passed explicitly to construction and to mutate, so the cases below
+ * can call both implementations in the same way. An omitted amount still reaches mutate's default of 1.
+ * @param {() => number} random
+ */
+const withGenerator = (random) => ({
+  NeuralNetwork: class extends srcModules.NeuralNetwork {
+    constructor(neuronCounts) {
+      super(neuronCounts, random);
+    }
+    static mutate(network, amount) {
+      super.mutate(network, amount, random);
+    }
+  },
+});
+
+/**
+ * The two implementations every case runs against: the frozen baseline (classic scripts in a vm, whose
+ * Math.random is `random`) and the src/ modules (given `random` as an argument). `load(random)` gives a
+ * handle with its own draws.
  */
 const IMPLEMENTATIONS = [
   { label: 'baseline (vm)', load: (random) => loadLegacy(files, names, { random }) },
-  { label: 'src modules', load: (random) => bindRandom(srcModules, random) },
+  { label: 'src modules', load: withGenerator },
 ];
 
 /** Weights and biases as plain JSON, so snapshots compare across the vm realm. */

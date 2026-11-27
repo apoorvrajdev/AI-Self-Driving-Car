@@ -1,7 +1,9 @@
 // @ts-check
+import { readFileSync, readdirSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { makeSeededRandom } from './helpers/loadLegacy.js';
-import { loadSrcModules } from './helpers/moduleSim.js';
+import { MODULES_DIR, loadSrcModules } from './helpers/moduleSim.js';
 
 // Loaded through the bridge so that MODULES_SRC_DIR (mutation checks) points these tests at a scratch copy.
 const { createRng, parseSeed } = await loadSrcModules(['sim/rng.js']);
@@ -28,6 +30,23 @@ describe('createRng (Mulberry32)', () => {
   it('the same seed gives the same sequence; seeds 1 and 2 differ', () => {
     expect(take(createRng(1), 64)).toEqual(take(createRng(1), 64));
     expect(take(createRng(1), 64)).not.toEqual(take(createRng(2), 64));
+  });
+});
+
+describe('src/ has no global generator', () => {
+  it('no script in src/ mentions Math.random', () => {
+    const dir = fileURLToPath(MODULES_DIR);
+    const files = readdirSync(dir, { recursive: true, encoding: 'utf8' })
+      .map((file) => file.replaceAll('\\', '/'))
+      .filter((file) => /\.(js|html)$/.test(file));
+    // The files that drew before T-203 and the generator itself must be among those scanned.
+    expect(files).toEqual(
+      expect.arrayContaining(['main.js', 'network.js', 'utils.js', 'car.js', 'sim/rng.js']),
+    );
+    const offenders = files.filter((file) =>
+      /\bMath\s*(\.\s*random\b|\[\s*['"`]random)/.test(readFileSync(dir + file, 'utf8')),
+    );
+    expect(offenders).toEqual([]);
   });
 });
 
